@@ -107,6 +107,9 @@ const maxHistoryJobs = 10
 func GetHistoryDDLJobs(txn kv.Transaction) ([]*model.Job, error) {
 	t := meta.NewMeta(txn)
 	jobs, err := t.GetAllHistoryDDLJobs()
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
 	jobsLen := len(jobs)
 	if jobsLen > maxHistoryJobs {
 		start := jobsLen - maxHistoryJobs

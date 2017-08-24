@@ -206,7 +206,7 @@ type ShowDDLJobsExec struct {
 }
 
 // Next implements the Executor Next interface.
-func (e *ShowDDLJobsExec) Next() (Row, error) {
+func (e *ShowDDLJobsExec) Next() (*Row, error) {
 	if e.cursor >= e.cnt {
 		return nil, nil
 	}
@@ -218,7 +218,8 @@ func (e *ShowDDLJobsExec) Next() (Row, error) {
 	if len(e.historyJobs) > e.cursor {
 		historyJob = e.historyJobs[e.cursor].String()
 	}
-	row := types.MakeDatums(job, historyJob)
+	row := &Row{}
+	row.Data = types.MakeDatums(job, historyJob)
 	e.cursor++
 
 	return row, nil
