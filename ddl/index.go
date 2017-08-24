@@ -486,7 +486,7 @@ const (
 	defaultBatchCnt      = 1024
 	defaultSmallBatchCnt = 128
 	defaultTaskHandleCnt = 128
-	defaultTaskCnt       = 16
+	defaultTaskCnt       = 24
 )
 
 // taskResult is the result of the task.
