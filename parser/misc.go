@@ -542,6 +542,7 @@ var tokenMap = map[string]int{
 	"LONGTEXT":                   longtextType,
 	"BOOL":                       boolType,
 	"BOOLEAN":                    booleanType,
+	"JOBS":                       jobs,
 	"JSON":                       jsonType,
 	"JSON_EXTRACT":               jsonExtract,
 	"JSON_UNQUOTE":               jsonUnquote,
