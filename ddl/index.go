@@ -485,8 +485,8 @@ func (d *ddl) getIndexRecords(t table.Table, taskOpInfo *indexTaskOpInfo, rawRec
 const (
 	defaultBatchCnt      = 1024
 	defaultSmallBatchCnt = 128
-	defaultTaskHandleCnt = 128
-	defaultTaskCnt       = 24
+	defaultTaskHandleCnt = 64
+	defaultTaskCnt       = 100
 )
 
 // taskResult is the result of the task.
