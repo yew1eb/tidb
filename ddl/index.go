@@ -488,7 +488,7 @@ const (
 )
 
 var (
-	DefaultTaskHandleCnt = 128
+	DefaultTaskHandleCnt = 256
 	DefaultTaskCnt       = 36
 )
 
