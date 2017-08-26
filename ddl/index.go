@@ -400,7 +400,7 @@ func (d *ddl) onDropIndex(t *meta.Meta, job *model.Job) (ver int64, _ error) {
 func (d *ddl) fetchRowColVals(txn kv.Transaction, t table.Table, taskOpInfo *indexTaskOpInfo, handleInfo *handleInfo) (
 	[]*indexRecord, *taskResult) {
 	startTime := time.Now()
-	handleCnt := defaultTaskHandleCnt
+	handleCnt := DefaultTaskHandleCnt
 	rawRecords := make([][]byte, 0, handleCnt)
 	idxRecords := make([]*indexRecord, 0, handleCnt)
 	ret := &taskResult{doneHandle: handleInfo.startHandle}
@@ -485,8 +485,11 @@ func (d *ddl) getIndexRecords(t table.Table, taskOpInfo *indexTaskOpInfo, rawRec
 const (
 	defaultBatchCnt      = 1024
 	defaultSmallBatchCnt = 128
-	defaultTaskHandleCnt = 64
-	defaultTaskCnt       = 100
+)
+
+var (
+	DefaultTaskHandleCnt = 128
+	DefaultTaskCnt       = 24
 )
 
 // taskResult is the result of the task.
@@ -520,8 +523,8 @@ type indexTaskOpInfo struct {
 // addTableIndex adds index into table.
 // TODO: Move this to doc or wiki.
 // How to add index in reorganization state?
-// Concurrently process the defaultTaskHandleCnt tasks. Each task deals with a handle range of the index record.
-// The handle range size is defaultTaskHandleCnt.
+// Concurrently process the DefaultTaskHandleCnt tasks. Each task deals with a handle range of the index record.
+// The handle range size is DefaultTaskHandleCnt.
 // Because each handle range depends on the previous one, it's necessary to obtain the handle range serially.
 // Real concurrent processing needs to perform after the handle range has been acquired.
 // The operation flow of the each task of data is as follows:
@@ -543,7 +546,7 @@ func (d *ddl) addTableIndex(t table.Table, indexInfo *model.IndexInfo, reorgInfo
 		col := cols[v.Offset]
 		colMap[col.ID] = &col.FieldType
 	}
-	taskCnt := defaultTaskCnt
+	taskCnt := DefaultTaskCnt
 	taskOpInfo := &indexTaskOpInfo{
 		tblIndex:  tables.NewIndex(t.Meta(), indexInfo),
 		colMap:    colMap,
@@ -671,7 +674,7 @@ func (d *ddl) doBackfillIndexTask(t table.Table, taskOpInfo *indexTaskOpInfo, st
 }
 
 // doBackfillIndexTaskInTxn deals with a part of backfilling index data in a Transaction.
-// This part of the index data rows is defaultTaskHandleCnt.
+// This part of the index data rows is DefaultTaskHandleCnt.
 func (d *ddl) doBackfillIndexTaskInTxn(t table.Table, txn kv.Transaction, taskOpInfo *indexTaskOpInfo,
 	handleInfo *handleInfo) *taskResult {
 	idxRecords, taskRet := d.fetchRowColVals(txn, t, taskOpInfo, handleInfo)
