@@ -489,7 +489,7 @@ const (
 
 var (
 	DefaultTaskHandleCnt = 128
-	DefaultTaskCnt       = 24
+	DefaultTaskCnt       = 36
 )
 
 // taskResult is the result of the task.
