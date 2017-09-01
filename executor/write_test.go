@@ -355,6 +355,32 @@ func (s *testSuite) TestInsertIgnore(c *C) {
 	_, err := tk.Exec("insert ignore into t values (1, 3)")
 	c.Assert(err, NotNil)
 	cfg.SetGetError(nil)
+
+	// for issue 4268
+	testSQL = `drop table if exists t;
+	create table t (a bigint);`
+	tk.MustExec(testSQL)
+	testSQL = "insert ignore into t select '1a';"
+	_, err = tk.Exec(testSQL)
+	c.Assert(err, IsNil)
+	r = tk.MustQuery("SHOW WARNINGS")
+	r.Check(testkit.Rows("Warning 1265 Data Truncated"))
+	testSQL = "insert ignore into t values ('1a')"
+	_, err = tk.Exec(testSQL)
+	c.Assert(err, IsNil)
+	r = tk.MustQuery("SHOW WARNINGS")
+	r.Check(testkit.Rows("Warning 1265 Data Truncated"))
+
+	// for duplicates with warning
+	testSQL = `drop table if exists t;
+	create table t(a int primary key, b int);`
+	tk.MustExec(testSQL)
+	testSQL = "insert ignore into t values (1,1);"
+	tk.MustExec(testSQL)
+	_, err = tk.Exec(testSQL)
+	c.Assert(err, IsNil)
+	r = tk.MustQuery("SHOW WARNINGS")
+	r.Check(testkit.Rows("Warning 1062 Duplicate entry '1' for key 'PRIMARY'"))
 }
 
 func (s *testSuite) TestReplace(c *C) {
@@ -963,22 +989,28 @@ func makeLoadDataInfo(column int, specifiedColumns []string, ctx context.Context
 	return
 }
 
-func (s *testSuite) TestBatchInsert(c *C) {
+func (s *testSuite) TestBatchInsertDelete(c *C) {
 	originLimit := atomic.LoadUint64(&kv.TxnEntryCountLimit)
 	originBatch := executor.BatchInsertSize
+	originDeleteBatch := executor.BatchDeleteSize
 	defer func() {
 		s.cleanEnv(c)
 		testleak.AfterTest(c)()
 		atomic.StoreUint64(&kv.TxnEntryCountLimit, originLimit)
 		executor.BatchInsertSize = originBatch
+		executor.BatchDeleteSize = originDeleteBatch
 	}()
 	// Set the limitation to a small value, make it easier to reach the limitation.
 	atomic.StoreUint64(&kv.TxnEntryCountLimit, 100)
 	executor.BatchInsertSize = 50
+	executor.BatchDeleteSize = 50
+
 	tk := testkit.NewTestKit(c, s.store)
 	tk.MustExec("use test")
 	tk.MustExec("drop table if exists batch_insert")
 	tk.MustExec("create table batch_insert (c int)")
+	tk.MustExec("drop table if exists batch_insert_on_duplicate")
+	tk.MustExec("create table batch_insert_on_duplicate (id int primary key, c int)")
 	// Insert 10 rows.
 	tk.MustExec("insert into batch_insert values (1),(1),(1),(1),(1),(1),(1),(1),(1),(1)")
 	r := tk.MustQuery("select count(*) from batch_insert;")
@@ -999,11 +1031,24 @@ func (s *testSuite) TestBatchInsert(c *C) {
 	tk.MustExec("insert into batch_insert (c) select * from batch_insert;")
 	r = tk.MustQuery("select count(*) from batch_insert;")
 	r.Check(testkit.Rows("160"))
+	// for on duplicate key
+	for i := 0; i < 160; i++ {
+		tk.MustExec(fmt.Sprintf("insert into batch_insert_on_duplicate values(%d, %d);", i, i))
+	}
+	r = tk.MustQuery("select count(*) from batch_insert_on_duplicate;")
+	r.Check(testkit.Rows("160"))
 
 	// This will meet txn too large error.
 	_, err := tk.Exec("insert into batch_insert (c) select * from batch_insert;")
 	c.Assert(err, NotNil)
 	c.Assert(kv.ErrTxnTooLarge.Equal(err), IsTrue)
+	r = tk.MustQuery("select count(*) from batch_insert;")
+	r.Check(testkit.Rows("160"))
+	// for on duplicate key
+	_, err = tk.Exec(`insert into batch_insert_on_duplicate select * from batch_insert_on_duplicate as tt
+		on duplicate key update batch_insert_on_duplicate.id=batch_insert_on_duplicate.id+1000;`)
+	c.Assert(err, NotNil)
+	c.Assert(kv.ErrTxnTooLarge.Equal(err), IsTrue, Commentf("%v", err))
 	r = tk.MustQuery("select count(*) from batch_insert;")
 	r.Check(testkit.Rows("160"))
 
@@ -1012,6 +1057,12 @@ func (s *testSuite) TestBatchInsert(c *C) {
 	tk.MustExec("insert into batch_insert (c) select * from batch_insert;")
 	r = tk.MustQuery("select count(*) from batch_insert;")
 	r.Check(testkit.Rows("320"))
+	// for on duplicate key
+	_, err = tk.Exec(`insert into batch_insert_on_duplicate select * from batch_insert_on_duplicate as tt
+		on duplicate key update batch_insert_on_duplicate.id=batch_insert_on_duplicate.id+1000;`)
+	c.Assert(err, IsNil)
+	r = tk.MustQuery("select count(*) from batch_insert_on_duplicate;")
+	r.Check(testkit.Rows("160"))
 
 	// Disable BachInsert mode in transition.
 	tk.MustExec("begin;")
@@ -1021,6 +1072,20 @@ func (s *testSuite) TestBatchInsert(c *C) {
 	tk.MustExec("rollback;")
 	r = tk.MustQuery("select count(*) from batch_insert;")
 	r.Check(testkit.Rows("320"))
+
+	// Test case for batch delete.
+	// This will meet txn too large error.
+	_, err = tk.Exec("delete from batch_insert;")
+	c.Assert(err, NotNil)
+	c.Assert(kv.ErrTxnTooLarge.Equal(err), IsTrue)
+	r = tk.MustQuery("select count(*) from batch_insert;")
+	r.Check(testkit.Rows("320"))
+	// Enable batch delete.
+	tk.MustExec("set @@session.tidb_batch_delete=on;")
+	tk.MustExec("delete from batch_insert;")
+	// Make sure that all rows are gone.
+	r = tk.MustQuery("select count(*) from batch_insert;")
+	r.Check(testkit.Rows("0"))
 }
 
 func (s *testSuite) TestNullDefault(c *C) {

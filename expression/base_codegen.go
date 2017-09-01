@@ -27,7 +27,7 @@ func (cg *Codegen) AllocateID() string {
 func (cg *Codegen) GenConstantBigint(val int64) string {
 	variableName := fmt.Sprintf("constant_%s", cg.AllocateID())
 	cg.Variable.WriteString(fmt.Sprintf("FieldBigint* %s = (FieldBigint*)malloc(sizeof(FieldBigint));\n", variableName))
-	cg.Clear.WriteString(fmt.Sprintf("free %s;\n", variableName))
+	cg.Clear.WriteString(fmt.Sprintf("free(%s);\n", variableName))
 	cg.Init.WriteString(fmt.Sprintf("%s->value = %v;\n", variableName, val))
 	cg.Init.WriteString(fmt.Sprintf("%s->isNull = false;\n", variableName))
 	return variableName
@@ -36,7 +36,7 @@ func (cg *Codegen) GenConstantBigint(val int64) string {
 func (cg *Codegen) GenConstantDouble(val float64) string {
 	variableName := fmt.Sprintf("constant_%s", cg.AllocateID())
 	cg.Variable.WriteString(fmt.Sprintf("FieldDouble* %s = (FieldDouble*)malloc(sizeof(FieldDouble));\n", variableName))
-	cg.Clear.WriteString(fmt.Sprintf("free %s;\n", variableName))
+	cg.Clear.WriteString(fmt.Sprintf("free(%s);\n", variableName))
 	cg.Init.WriteString(fmt.Sprintf("%s->value = %v;\n", variableName, val))
 	cg.Init.WriteString(fmt.Sprintf("%s->isNull = false;\n", variableName))
 	return variableName
@@ -73,10 +73,10 @@ func (cg *Codegen) GenTuple(schema *Schema, id string) (string, error) {
 	}
 	cg.Init.WriteString(fmt.Sprintf("%s->fields = malloc(%s);\n", tupleName, sizeofFields))
 
-	cg.Clear.WriteString(fmt.Sprintf("free %s->offset;\n", tupleName))
-	cg.Clear.WriteString(fmt.Sprintf("free %s->size;\n", tupleName))
-	cg.Clear.WriteString(fmt.Sprintf("free %s->fields;\n", tupleName))
-	cg.Clear.WriteString(fmt.Sprintf("free %s;\n", tupleName))
+	cg.Clear.WriteString(fmt.Sprintf("free(%s->offset);\n", tupleName))
+	cg.Clear.WriteString(fmt.Sprintf("free(%s->size);\n", tupleName))
+	cg.Clear.WriteString(fmt.Sprintf("free(%s->fields);\n", tupleName))
+	cg.Clear.WriteString(fmt.Sprintf("free(%s);\n", tupleName))
 	return tupleName, nil
 }
 

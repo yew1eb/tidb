@@ -57,7 +57,7 @@ func (s *builtinArithmeticPlusIntSig) codegen(cg *Codegen, inputTuple string) (s
 
 	s.cgResult = fmt.Sprintf("field_result_func_plus_%s", cg.AllocateID())
 	cg.Variable.WriteString(fmt.Sprintf("FieldBigint* %s = (FieldBigint*)malloc(sizeof(FieldBigint));\n", s.cgResult))
-	cg.Clear.WriteString(fmt.Sprintf("free %s;\n", s.cgResult))
+	cg.Clear.WriteString(fmt.Sprintf("free(%s);\n", s.cgResult))
 	cg.Main.WriteString(fmt.Sprintf("Plus(%s, %s, %s);\n", lhs, rhs, s.cgResult))
 	return s.cgResult, nil
 }
@@ -75,7 +75,7 @@ func (s *builtinArithmeticMinusIntSig) codegen(cg *Codegen, inputTuple string) (
 
 	s.cgResult = fmt.Sprintf("field_result_func_minus_%s", cg.AllocateID())
 	cg.Variable.WriteString(fmt.Sprintf("FieldBigint* %s = (FieldBigint*)malloc(sizeof(FieldBigint));\n", s.cgResult))
-	cg.Clear.WriteString(fmt.Sprintf("free %s;\n", s.cgResult))
+	cg.Clear.WriteString(fmt.Sprintf("free(%s);\n", s.cgResult))
 	cg.Main.WriteString(fmt.Sprintf("Minus(%s, %s, %s);\n", lhs, rhs, s.cgResult))
 	return s.cgResult, nil
 }
