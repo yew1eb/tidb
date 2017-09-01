@@ -1,0 +1,79 @@
+after codegen:
+
+// header files
+#include <stdint.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+// global variables
+Tuple result_TableReader_3;
+Tuple result_Projection_4;
+
+// initialize
+void init() {
+    result_TableReader_3.fields = malloc(sizeof(FieldBigint) + sizeof(FieldDouble) + sizeof(FieldBigint));
+    result_TableReader_3.offset = malloc(sizeof(size_t) * 3);
+    result_TableReader_3.offset[0] = 0;
+    result_TableReader_3.offset[1] = sizeof(FieldBigint);
+    result_TableReader_3.offset[2] = sizeof(FieldBigint) + sizeof(FieldDouble);
+
+    result_Projection_4.fields = malloc(sizeof(FieldBigint) + sizeof(FieldDouble));
+    result_Projection_4.offset = malloc(sizeof(size_t) * 2);
+    result_Projection_4.offset[0] = 0;
+    result_Projection_4.offset[1] = sizeof(FieldBigint);
+}
+
+// clear
+void clear() {
+    free(result_TableReader_3.fields);
+    free(result_TableReader_3.offset);
+
+    free(result_Projection_4.fields);
+    free(result_Projection_4.offset);
+}
+
+
+// global functions
+bool GetTupleFromTableReader_3() {
+    FieldBigint* field_0 = GetBigintFromTuple(&result_TableReader_3, 0);
+    FieldDouble* field_1 = GetDoubleFromTuple(&result_TableReader_3, 1);
+    FieldBigint* field_2 = GetBigintFromTuple(&result_TableReader_3, 2);
+
+    SetValue2FieldBigint(field_0, 12);
+    SetValue2FieldDouble(field_1, 1.20198);
+    SetValue2FieldBigint(field_2, 43);
+}
+
+bool GetTupleFromProjection_4() {
+    FieldBigint* inputField_0 = GetBigintFromTuple(&result_TableReader_3, 0);
+    FieldDouble* inputField_1 = GetDoubleFromTuple(&result_TableReader_3, 1);
+    FieldBigint* inputField_2 = GetBigintFromTuple(&result_TableReader_3, 2);
+
+    FieldBigint* outputField_0 = GetBigintFromTuple(&result_Projection_4, 0);
+    FieldDouble* outputField_1 = GetDoubleFromTuple(&result_Projection_4, 1);
+
+    FieldBigint outputField_0;
+    Plus(inputField_0, inputField_2, &outputField_0);
+    Div(inputField_0, &outputField_0, &outputField_0);
+    *GetBigintFromTuple(&result_Projection_4, 0) = outputField_0;
+
+    FieldDouble outputField_1;
+    outputField_1 = *inputField_1;
+    *GetDoubleFromTuple(&result_Projection_4, 1) = outputField_1;
+}
+
+int main() {
+    init();
+
+    // main function, gened by framework
+    while true {
+        GetTupleFromTableReader_3();
+        GetTupleFromProjection_4();
+
+        //call function library to send result to client
+        SendTuple(&result_Projection_4);
+    }
+
+    clear();
+}

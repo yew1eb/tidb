@@ -119,6 +119,10 @@ type Expression interface {
 
 	// ExplainInfo returns operator information to be explained.
 	ExplainInfo() string
+
+	// Codegen for code generation
+	Codegen(cg *Codegen, inputTuple string) (string, error)
+	CodegenGetResult() string
 }
 
 // CNFExprs stands for a CNF expression.
@@ -290,8 +294,9 @@ var Null = &Constant{
 
 // Constant stands for a constant value.
 type Constant struct {
-	Value   types.Datum
-	RetType *types.FieldType
+	Value         types.Datum
+	RetType       *types.FieldType
+	codegenResult string
 }
 
 // String implements fmt.Stringer interface.

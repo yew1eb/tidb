@@ -275,6 +275,8 @@ type PhysicalPlan interface {
 
 	// statsProfile will return the stats for this plan.
 	statsProfile() *statsProfile
+
+	Codegen(cg *expression.Codegen) (string, error)
 }
 
 type baseLogicalPlan struct {

@@ -130,7 +130,8 @@ type Column struct {
 	// Index is only used for execution.
 	Index int
 
-	hashcode []byte
+	hashcode      []byte
+	codegenResult string
 }
 
 // Equal implements Expression interface.

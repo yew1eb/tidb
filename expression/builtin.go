@@ -69,6 +69,7 @@ type baseBuiltinFunc struct {
 	ctx           context.Context
 	deterministic bool
 	tp            *types.FieldType
+	cgResult      string
 	// self points to the built-in function signature which contains this baseBuiltinFunc.
 	// TODO: self will be removed after all built-in function signatures implement EvalXXX().
 	self builtinFunc
@@ -646,6 +647,9 @@ type builtinFunc interface {
 	getRetTp() *types.FieldType
 	// setSelf sets a pointer to itself.
 	setSelf(builtinFunc) builtinFunc
+	// codegen for code generation.
+	codegen(cg *Codegen, inputTuple string) (string, error)
+	codegenGetResult() string
 }
 
 // baseFunctionClass will be contained in every struct that implement functionClass interface.
