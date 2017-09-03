@@ -23,9 +23,9 @@ func (col *Column) Codegen(cg *Codegen, inputTuple string) (string, error) {
 	col.codegenResult = fmt.Sprintf("column_%s", cg.AllocateID())
 	switch col.GetType().Tp {
 	case mysql.TypeLonglong:
-		cg.Variable.WriteString(fmt.Sprintf("FieldBigint* %s = GetBigintFromTuple(%s, %v);\n", col.codegenResult, inputTuple, col.Index))
+		cg.Init.WriteString(fmt.Sprintf("FieldBigint* %s = GetBigintFromTuple(%s, %v);\n", col.codegenResult, inputTuple, col.Index))
 	case mysql.TypeDouble:
-		cg.Variable.WriteString(fmt.Sprintf("FieldDouble* %s = GetDoubleFromTuple(%s, %v);\n", col.codegenResult, inputTuple, col.Index))
+		cg.Init.WriteString(fmt.Sprintf("FieldDouble* %s = GetDoubleFromTuple(%s, %v);\n", col.codegenResult, inputTuple, col.Index))
 	default:
 		return "", errors.Errorf("unsupported column type [%s] for codegen", col.GetType())
 	}
@@ -56,9 +56,9 @@ func (s *builtinArithmeticPlusIntSig) codegen(cg *Codegen, inputTuple string) (s
 	}
 
 	s.cgResult = fmt.Sprintf("field_result_func_plus_%s", cg.AllocateID())
-	cg.Variable.WriteString(fmt.Sprintf("FieldBigint* %s = (FieldBigint*)malloc(sizeof(FieldBigint));\n", s.cgResult))
+	cg.Init.WriteString(fmt.Sprintf("FieldBigint* %s = (FieldBigint*)malloc(sizeof(FieldBigint));\n", s.cgResult))
 	cg.Clear.WriteString(fmt.Sprintf("free(%s);\n", s.cgResult))
-	cg.Main.WriteString(fmt.Sprintf("Plus(%s, %s, %s);\n", lhs, rhs, s.cgResult))
+	cg.Main.WriteString(fmt.Sprintf("PlusBigint(%s, %s, %s);\n", lhs, rhs, s.cgResult))
 	return s.cgResult, nil
 }
 
@@ -74,8 +74,8 @@ func (s *builtinArithmeticMinusIntSig) codegen(cg *Codegen, inputTuple string) (
 	}
 
 	s.cgResult = fmt.Sprintf("field_result_func_minus_%s", cg.AllocateID())
-	cg.Variable.WriteString(fmt.Sprintf("FieldBigint* %s = (FieldBigint*)malloc(sizeof(FieldBigint));\n", s.cgResult))
+	cg.Init.WriteString(fmt.Sprintf("FieldBigint* %s = (FieldBigint*)malloc(sizeof(FieldBigint));\n", s.cgResult))
 	cg.Clear.WriteString(fmt.Sprintf("free(%s);\n", s.cgResult))
-	cg.Main.WriteString(fmt.Sprintf("Minus(%s, %s, %s);\n", lhs, rhs, s.cgResult))
+	cg.Main.WriteString(fmt.Sprintf("MinusBigint(%s, %s, %s);\n", lhs, rhs, s.cgResult))
 	return s.cgResult, nil
 }

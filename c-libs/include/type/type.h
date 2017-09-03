@@ -28,6 +28,6 @@ typedef struct FieldType {
     StringPiece     collation;
     int             flen;
     int             decimal;
-}
+} FieldType;
 
 #endif

@@ -138,14 +138,12 @@ func doOptimize(flag uint64, logic LogicalPlan, ctx context.Context, allocator *
 	cg := expression.NewCodegen()
 	_, err = finalPlan.Codegen(cg)
 	if err != nil {
-		fmt.Printf("codegen failed: %s\n", err.Error())
+		fmt.Printf("codegen FAILED: %s\n", err.Error())
 	} else {
-		fmt.Printf("header:\n%s\n\n", cg.Header)
-		fmt.Printf("variable:\n%s\n\n", cg.Variable)
-		fmt.Printf("function:\n%s\n\n", cg.Function)
-		fmt.Printf("init:\n%s\n\n", cg.Init)
-		fmt.Printf("clear:\n%s\n\n", cg.Clear)
-		fmt.Printf("Main:\n%s\n\n", cg.Main)
+		err = cg.Finalize()
+		if err != nil {
+			fmt.Printf("codegen FAILED: %s\n", err.Error())
+		}
 	}
 
 	return finalPlan, nil
