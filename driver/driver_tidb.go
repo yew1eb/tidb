@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package server
+package driver
 
 import (
 	"crypto/tls"
@@ -29,13 +29,13 @@ import (
 
 // TiDBDriver implements IDriver.
 type TiDBDriver struct {
-	store kv.Storage
+	Store kv.Storage
 }
 
 // NewTiDBDriver creates a new TiDBDriver.
 func NewTiDBDriver(store kv.Storage) *TiDBDriver {
 	driver := &TiDBDriver{
-		store: store,
+		Store: store,
 	}
 	return driver
 }
@@ -342,7 +342,7 @@ func convertColumnInfo(fld *ast.ResultField) (ci *ColumnInfo) {
 	ci.Type = uint8(fld.Column.Tp)
 
 	// Keep things compatible for old clients.
-	// Refer to mysql-server/sql/protocol.cc send_result_set_metadata()
+	// Refer to mysql-server/sql/protocol.xcc send_result_set_metadata()
 	if ci.Type == mysql.TypeVarchar {
 		ci.Type = mysql.TypeVarString
 	}

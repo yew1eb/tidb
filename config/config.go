@@ -31,6 +31,8 @@ type Config struct {
 	SSLCAPath      string `json:"ssl_ca_path" toml:"ssl_ca_path"`
 	SSLCertPath    string `json:"ssl_cert_path" toml:"ssl_cert_path"`
 	SSLKeyPath     string `json:"ssl_key_path" toml:"ssl_key_path"`
+	XAddr          string `json:"xaddr" toml:"xaddr"`
+	XSocket        string `json:"xsocket" toml:"xsocket"`
 }
 
 var cfg *Config

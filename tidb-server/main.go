@@ -43,6 +43,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"google.golang.org/grpc"
+	"github.com/pingcap/tidb/driver"
 )
 
 var (
@@ -72,7 +73,7 @@ var (
 	skipGrantTable  = flagBoolean("skip-grant-table", false, "This option causes the server to start without using the privilege system at all.")
 	slowThreshold   = flag.Int("slow-threshold", 300, "Queries with execution time greater than this value will be logged. (Milliseconds)")
 	queryLogMaxlen  = flag.Int("query-log-max-len", 2048, "Maximum query length recorded in log")
-	startXServer    = flagBoolean("xserver", false, "start tidb x protocol server")
+	startXServer    = flagBoolean("xserver", true, "start tidb x protocol server")
 	tcpKeepAlive    = flagBoolean("tcp-keep-alive", false, "set keep alive option for tcp connection.")
 	sslCAPath       = flag.String("ssl-ca", "", "Path of file that contains list of trusted SSL CAs")
 	sslCertPath     = flag.String("ssl-cert", "", "Path of file that contains X509 certificate in PEM format")
@@ -113,9 +114,11 @@ func main() {
 
 	cfg := config.GetGlobalConfig()
 	cfg.Addr = fmt.Sprintf("%s:%s", *host, *port)
+	cfg.XAddr = fmt.Sprintf("%s:%s", *xhost, *xport)
 	cfg.LogLevel = *logLevel
 	cfg.StatusAddr = fmt.Sprintf(":%s", *statusPort)
 	cfg.Socket = *socket
+	cfg.XSocket = *xsocket
 	cfg.ReportStatus = *reportStatus
 	cfg.Store = *store
 	cfg.StorePath = *storePath
@@ -125,12 +128,6 @@ func main() {
 	cfg.SSLCAPath = *sslCAPath
 	cfg.SSLCertPath = *sslCertPath
 	cfg.SSLKeyPath = *sslKeyPath
-
-	xcfg := &xserver.Config{
-		Addr:     fmt.Sprintf("%s:%s", *xhost, *xport),
-		Socket:   *socket,
-		LogLevel: *logLevel,
-	}
 
 	// set log options
 	logConf := &logutil.LogConfig{
@@ -172,16 +169,17 @@ func main() {
 		log.Fatal(errors.ErrorStack(err))
 	}
 
-	var driver server.IDriver
-	driver = server.NewTiDBDriver(store)
+	var tidbDriver driver.IDriver
+	tidbDriver = driver.NewTiDBDriver(store)
 	var svr *server.Server
-	svr, err = server.NewServer(cfg, driver)
+	svr, err = server.NewServer(cfg, tidbDriver, server.MysqlProtocol)
 	if err != nil {
 		log.Fatal(errors.ErrorStack(err))
 	}
-	var xsvr *xserver.Server
+
+	var xsvr *server.Server
 	if *startXServer {
-		xsvr, err = xserver.NewServer(xcfg)
+		xsvr, err = server.NewServer(cfg, tidbDriver, server.MysqlXProtocol)
 		if err != nil {
 			log.Fatal(errors.ErrorStack(err))
 		}
@@ -197,9 +195,9 @@ func main() {
 	go func() {
 		sig := <-sc
 		log.Infof("Got signal [%d] to exit.", sig)
-		if *startXServer {
-			xsvr.Close() // Should close xserver before server.
-		}
+		//if *startXServer {
+		//	xsvr.Close() // Should close xserver before server.
+		//}
 		svr.Close()
 	}()
 
@@ -210,13 +208,20 @@ func main() {
 
 	pushMetric(*metricsAddr, time.Duration(*metricsInterval)*time.Second)
 
-	if err := svr.Run(); err != nil {
-		log.Error(err)
-	}
+	var srvError chan error
+	go func() {
+		srvError <- svr.Run()
+	}()
 	if *startXServer {
-		if err := xsvr.Run(); err != nil {
-			log.Error(err)
-		}
+		go func() {
+			srvError <- xsvr.Run()
+		}()
+	}
+	select {
+	case err = <- srvError:
+	}
+	if err != nil {
+		log.Error(err)
 	}
 	domain.Close()
 	os.Exit(0)
