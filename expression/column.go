@@ -171,48 +171,72 @@ func (col *Column) GetTypeClass() types.TypeClass {
 
 // Eval implements Expression interface.
 func (col *Column) Eval(row []types.Datum) (types.Datum, error) {
+	if len(row) == 0 {
+		return types.Datum{}, errEmptyColumn.GenByArgs(col.ColName.String())
+	}
 	return row[col.Index], nil
 }
 
 // EvalInt returns int representation of Column.
 func (col *Column) EvalInt(row []types.Datum, sc *variable.StatementContext) (int64, bool, error) {
 	val, isNull, err := evalExprToInt(col, row, sc)
+	if errEmptyColumn.Equal(err) {
+		return 0, false, nil
+	}
 	return val, isNull, errors.Trace(err)
 }
 
 // EvalReal returns real representation of Column.
 func (col *Column) EvalReal(row []types.Datum, sc *variable.StatementContext) (float64, bool, error) {
 	val, isNull, err := evalExprToReal(col, row, sc)
+	if errEmptyColumn.Equal(err) {
+		return 0, false, nil
+	}
 	return val, isNull, errors.Trace(err)
 }
 
 // EvalString returns string representation of Column.
 func (col *Column) EvalString(row []types.Datum, sc *variable.StatementContext) (string, bool, error) {
 	val, isNull, err := evalExprToString(col, row, sc)
+	if errEmptyColumn.Equal(err) {
+		return "", false, nil
+	}
 	return val, isNull, errors.Trace(err)
 }
 
 // EvalDecimal returns decimal representation of Column.
 func (col *Column) EvalDecimal(row []types.Datum, sc *variable.StatementContext) (*types.MyDecimal, bool, error) {
 	val, isNull, err := evalExprToDecimal(col, row, sc)
+	if errEmptyColumn.Equal(err) {
+		return &types.MyDecimal{}, false, nil
+	}
 	return val, isNull, errors.Trace(err)
 }
 
 // EvalTime returns DATE/DATETIME/TIMESTAMP representation of Column.
 func (col *Column) EvalTime(row []types.Datum, sc *variable.StatementContext) (types.Time, bool, error) {
 	val, isNull, err := evalExprToTime(col, row, sc)
+	if errEmptyColumn.Equal(err) {
+		return types.Time{}, false, nil
+	}
 	return val, isNull, errors.Trace(err)
 }
 
 // EvalDuration returns Duration representation of Column.
 func (col *Column) EvalDuration(row []types.Datum, sc *variable.StatementContext) (types.Duration, bool, error) {
 	val, isNull, err := evalExprToDuration(col, row, sc)
+	if errEmptyColumn.Equal(err) {
+		return types.Duration{}, false, nil
+	}
 	return val, isNull, errors.Trace(err)
 }
 
 // EvalJSON returns JSON representation of Column.
 func (col *Column) EvalJSON(row []types.Datum, sc *variable.StatementContext) (json.JSON, bool, error) {
 	val, isNull, err := evalExprToJSON(col, row, sc)
+	if errEmptyColumn.Equal(err) {
+		return json.JSON{}, false, nil
+	}
 	return val, isNull, errors.Trace(err)
 }
 

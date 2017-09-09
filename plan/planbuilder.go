@@ -743,7 +743,7 @@ func (b *planBuilder) buildInsert(insert *ast.InsertStmt) Plan {
 					RetType: &val.Type,
 				}
 			} else {
-				expr, _, err = b.rewrite(valueItem, nil, nil, true)
+				expr, _, err = b.rewrite(valueItem, insertPlan, nil, true)
 			}
 			if err != nil {
 				b.err = errors.Trace(err)

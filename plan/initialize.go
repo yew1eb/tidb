@@ -190,6 +190,7 @@ func (p Delete) init(allocator *idAllocator, ctx context.Context) *Delete {
 
 func (p Insert) init(allocator *idAllocator, ctx context.Context) *Insert {
 	p.basePlan = newBasePlan(TypeInsert, allocator, ctx, &p)
+	p.basePlan.SetSchema(p.tableSchema)
 	p.baseLogicalPlan = newBaseLogicalPlan(p.basePlan)
 	p.basePhysicalPlan = newBasePhysicalPlan(p.basePlan)
 	return &p
