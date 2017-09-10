@@ -62,12 +62,12 @@ func (spa *saslMysql41Auth) handleContinue(data []byte) *Response {
 		xcc.user = string(user)
 		// Open session and do auth
 
-		ctx, err1 := xcc.server.driver.OpenCtx(uint64(xcc.connectionID), xcc.capability, uint8(xcc.collation), xcc.dbname)
+		ctx, err1 := xcc.server.driver.OpenCtx(uint64(xcc.connectionID), xcc.capability, uint8(xcc.collation), xcc.dbname, nil)
 		if err1 != nil {
 			err = xutil.ErrXNoSuchUser
 		}
 		xcc.xsession = xprotocol.CreateXSession(&xcc.alloc, xcc.connectionID, ctx, xcc.pkt, xcc.server.skipAuth())
-		xcc.ctx, err1 = xcc.server.driver.OpenCtx(uint64(xcc.connectionID), xcc.capability, uint8(xcc.collation), xcc.dbname)
+		xcc.ctx, err1 = xcc.server.driver.OpenCtx(uint64(xcc.connectionID), xcc.capability, uint8(xcc.collation), xcc.dbname, nil)
 
 		if !spa.xauth.xcc.server.skipAuth() {
 			// Do Auth

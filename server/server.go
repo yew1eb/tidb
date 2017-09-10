@@ -88,6 +88,7 @@ type Server struct {
 	concurrentLimiter *TokenLimiter
 	typ               int
 	clients           map[uint32] clientConn
+	capability        uint32
 
 	// When a critical error occurred, we don't want to exit the process, because there may be
 	// a supervisor automatically restart it, then new client connection will be created, but we can't server it.

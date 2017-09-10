@@ -43,8 +43,6 @@ func createClientConn(conn net.Conn, s *Server) clientConn {
 	switch s.typ {
 	case MysqlProtocol:
 		return &mysqlClientConn{
-			conn:         conn,
-			pkt:          newPacketIO(conn),
 			server:       s,
 			connectionID: atomic.AddUint32(&baseConnID, 1),
 			collation:    mysql.DefaultCollationID,

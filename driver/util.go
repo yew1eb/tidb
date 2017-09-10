@@ -42,10 +42,18 @@ import (
 
 	"github.com/juju/errors"
 	"github.com/pingcap/tidb/mysql"
+	"github.com/pingcap/tidb/terror"
 	"github.com/pingcap/tidb/util/arena"
 	"github.com/pingcap/tidb/util/hack"
 	"github.com/pingcap/tidb/util/types"
+	"strconv"
 )
+
+const (
+	codeInvalidType       = 4
+)
+
+var errInvalidType       = terror.ClassServer.New(codeInvalidType, "invalid type")
 
 func ParseLengthEncodedInt(b []byte) (num uint64, isNull bool, n int) {
 	switch b[0] {
@@ -317,12 +325,49 @@ func DumpDatumToBinary(alloc arena.Allocator, column *ColumnInfo, val types.Datu
 		data = append(data, DumpBinaryTime(val.GetMysqlDuration().Duration)...)
 	case types.KindMysqlSet:
 		data = append(data, DumpLengthEncodedString(hack.Slice(val.GetMysqlSet().String()), alloc)...)
-	case types.KindMysqlHex:
-		data = append(data, DumpLengthEncodedString(hack.Slice(val.GetMysqlHex().ToString()), alloc)...)
 	case types.KindMysqlEnum:
 		data = append(data, DumpLengthEncodedString(hack.Slice(val.GetMysqlEnum().String()), alloc)...)
 	case types.KindMysqlBit:
 		data = append(data, DumpLengthEncodedString(hack.Slice(val.GetMysqlBit().ToString()), alloc)...)
 	}
 	return data, nil
+}
+
+func DumpTextValue(colInfo *ColumnInfo, value types.Datum) ([]byte, error) {
+	switch value.Kind() {
+	case types.KindInt64:
+		return strconv.AppendInt(nil, value.GetInt64(), 10), nil
+	case types.KindUint64:
+		return strconv.AppendUint(nil, value.GetUint64(), 10), nil
+	case types.KindFloat32:
+		prec := -1
+		if colInfo.Decimal > 0 && int(colInfo.Decimal) != mysql.NotFixedDec {
+			prec = int(colInfo.Decimal)
+		}
+		return strconv.AppendFloat(nil, value.GetFloat64(), 'f', prec, 32), nil
+	case types.KindFloat64:
+		prec := -1
+		if colInfo.Decimal > 0 && int(colInfo.Decimal) != mysql.NotFixedDec {
+			prec = int(colInfo.Decimal)
+		}
+		return strconv.AppendFloat(nil, value.GetFloat64(), 'f', prec, 64), nil
+	case types.KindString, types.KindBytes:
+		return value.GetBytes(), nil
+	case types.KindMysqlTime:
+		return hack.Slice(value.GetMysqlTime().String()), nil
+	case types.KindMysqlDuration:
+		return hack.Slice(value.GetMysqlDuration().String()), nil
+	case types.KindMysqlDecimal:
+		return hack.Slice(value.GetMysqlDecimal().String()), nil
+	case types.KindMysqlEnum:
+		return hack.Slice(value.GetMysqlEnum().String()), nil
+	case types.KindMysqlSet:
+		return hack.Slice(value.GetMysqlSet().String()), nil
+	case types.KindMysqlJSON:
+		return hack.Slice(value.GetMysqlJSON().String()), nil
+	case types.KindBinaryLiteral, types.KindMysqlBit:
+		return hack.Slice(value.GetBinaryLiteral().ToString()), nil
+	default:
+		return nil, errInvalidType.Gen("invalid type %v", value.Kind())
+	}
 }

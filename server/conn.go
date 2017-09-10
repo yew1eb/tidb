@@ -48,7 +48,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/juju/errors"
-	"github.com/ngaut/log"
 	"github.com/pingcap/tidb/driver"
 	"github.com/pingcap/tidb/executor"
 	"github.com/pingcap/tidb/kv"
@@ -832,7 +831,7 @@ func (cc *mysqlClientConn) writeResultset(rs driver.ResultSet, binary bool, more
 					continue
 				}
 				var valData []byte
-				valData, err = dumpTextValue(columns[i], value)
+				valData, err = driver.DumpTextValue(columns[i], value)
 				if err != nil {
 					return errors.Trace(err)
 				}

@@ -156,7 +156,7 @@ func (xcc *mysqlXClientConn) handshakeSession() error {
 
 	// Open session and do auth
 	var ctx driver.QueryCtx
-	ctx, err = xcc.server.driver.OpenCtx(uint64(xcc.connectionID), xcc.capability, uint8(xcc.collation), xcc.dbname)
+	ctx, err = xcc.server.driver.OpenCtx(uint64(xcc.connectionID), xcc.capability, uint8(xcc.collation), xcc.dbname, nil)
 	if err != nil {
 		return errors.Trace(err)
 	}
