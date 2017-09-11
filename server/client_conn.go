@@ -17,7 +17,7 @@ import (
 	"net"
 	"sync/atomic"
 
-	"github.com/ngaut/log"
+	log "github.com/Sirupsen/logrus"
 	"github.com/pingcap/tidb/mysql"
 	"github.com/pingcap/tidb/xprotocol/xpacketio"
 	"github.com/pingcap/tidb/util"

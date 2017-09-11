@@ -18,7 +18,7 @@ import (
 	"net"
 
 	"github.com/juju/errors"
-	"github.com/ngaut/log"
+	log "github.com/Sirupsen/logrus"
 	"github.com/pingcap/tidb/terror"
 	"github.com/pingcap/tidb/util"
 	xutil "github.com/pingcap/tidb/xprotocol/util"

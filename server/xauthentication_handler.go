@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/ngaut/log"
+	log "github.com/Sirupsen/logrus"
 )
 
 type Status int32

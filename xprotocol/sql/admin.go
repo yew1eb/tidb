@@ -1,7 +1,7 @@
 package sql
 
 import (
-	"github.com/ngaut/log"
+	log "github.com/Sirupsen/logrus"
 	"github.com/juju/errors"
 	"github.com/pingcap/tipb/go-mysqlx/Datatypes"
 	"github.com/pingcap/tipb/go-mysqlx/Sql"

@@ -2,7 +2,7 @@ package server
 
 import (
 	"github.com/juju/errors"
-	"github.com/ngaut/log"
+	log "github.com/Sirupsen/logrus"
 	"github.com/pingcap/tipb/go-mysqlx"
 	"github.com/pingcap/tipb/go-mysqlx/Session"
 	"github.com/pingcap/tidb/xprotocol/notice"

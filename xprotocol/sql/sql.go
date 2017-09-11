@@ -9,7 +9,7 @@ import (
 	"github.com/pingcap/tidb/mysql"
 	"github.com/pingcap/tipb/go-mysqlx"
 	"github.com/juju/errors"
-	"github.com/ngaut/log"
+	log "github.com/Sirupsen/logrus"
 	"github.com/pingcap/tidb/util/arena"
 	"github.com/pingcap/tidb/util/types"
 )

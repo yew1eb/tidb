@@ -2,7 +2,7 @@ package server
 
 import (
 	"net"
-	"github.com/ngaut/log"
+	log "github.com/Sirupsen/logrus"
 	"github.com/pingcap/tidb/mysql"
 	xutil "github.com/pingcap/tidb/xprotocol/util"
 	"github.com/pingcap/tidb/util/auth"
