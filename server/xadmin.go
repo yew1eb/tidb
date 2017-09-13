@@ -3,10 +3,10 @@ package server
 import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/juju/errors"
+	"github.com/pingcap/tidb/terror"
+	"github.com/pingcap/tidb/xprotocol/util"
 	"github.com/pingcap/tipb/go-mysqlx/Datatypes"
 	"github.com/pingcap/tipb/go-mysqlx/Sql"
-	"github.com/pingcap/tidb/xprotocol/util"
-	"github.com/pingcap/tidb/terror"
 )
 
 const (
@@ -15,14 +15,14 @@ const (
 	CountID = "COUNT(CASE WHEN (column_name = '_id' " +
 		"AND generation_expression = " +
 		"'json_unquote(json_extract(`doc`,''$._id''))') THEN 1 ELSE NULL END)"
-	CountGen        = "COUNT(CASE WHEN (column_name != '_id' " +
+	CountGen = "COUNT(CASE WHEN (column_name != '_id' " +
 		"AND generation_expression RLIKE " +
 		"'^(json_unquote[[.(.]])?json_extract[[.(.]]`doc`," +
 		"''[[.$.]]([[...]][^[:space:][...]]+)+''[[.).]]{1,2}$') THEN 1 ELSE NULL " +
 		"END)"
 )
 
-func (xsql *XSql) dispatchAdminCmd (msg Mysqlx_Sql.StmtExecute) error {
+func (xsql *XSql) dispatchAdminCmd(msg Mysqlx_Sql.StmtExecute) error {
 	stmt := string(msg.GetStmt())
 	args := msg.GetArgs()
 	switch stmt {
@@ -47,18 +47,18 @@ func (xsql *XSql) dispatchAdminCmd (msg Mysqlx_Sql.StmtExecute) error {
 	return nil
 }
 
-func (xsql *XSql) ping (args []*Mysqlx_Datatypes.Any) error {
+func (xsql *XSql) ping(args []*Mysqlx_Datatypes.Any) error {
 	if len(args) != 0 {
 		return errors.New("not enough arguments")
 	}
 	return xsql.sendExecOk()
 }
 
-func (xsql *XSql) listClients () error {
+func (xsql *XSql) listClients() error {
 	return nil
 }
 
-func (xsql *XSql) killClient (args []*Mysqlx_Datatypes.Any) error {
+func (xsql *XSql) killClient(args []*Mysqlx_Datatypes.Any) error {
 	if len(args) != 1 {
 		return errors.New("not enough arguments")
 	}
@@ -116,7 +116,7 @@ func (xsql *XSql) createCollectionImpl(args []*Mysqlx_Datatypes.Any) error {
 	return xsql.executeStmt(sql)
 }
 
-func (xsql *XSql) createCollection (args []*Mysqlx_Datatypes.Any) error {
+func (xsql *XSql) createCollection(args []*Mysqlx_Datatypes.Any) error {
 	err := xsql.createCollectionImpl(args)
 	if err != nil {
 		return errors.Trace(err)
@@ -124,7 +124,7 @@ func (xsql *XSql) createCollection (args []*Mysqlx_Datatypes.Any) error {
 	return xsql.sendExecOk()
 }
 
-func (xsql *XSql) ensureCollection (args []*Mysqlx_Datatypes.Any) error {
+func (xsql *XSql) ensureCollection(args []*Mysqlx_Datatypes.Any) error {
 	err := xsql.createCollectionImpl(args)
 	if err != nil {
 		if !terror.ErrorEqual(err, util.ErrTableExists) {
@@ -144,7 +144,7 @@ func (xsql *XSql) ensureCollection (args []*Mysqlx_Datatypes.Any) error {
 	return xsql.sendExecOk()
 }
 
-func (xsql *XSql) dropCollection (args []*Mysqlx_Datatypes.Any) error {
+func (xsql *XSql) dropCollection(args []*Mysqlx_Datatypes.Any) error {
 	if len(args) != 2 {
 		return errors.New("not enough arguments")
 	}
@@ -184,15 +184,15 @@ func (xsql *XSql) dropCollection (args []*Mysqlx_Datatypes.Any) error {
 	return xsql.sendExecOk()
 }
 
-func (xsql *XSql) createCollectionIndex (args []*Mysqlx_Datatypes.Any) error {
-	return xsql.sendExecOk()
+func (xsql *XSql) createCollectionIndex(args []*Mysqlx_Datatypes.Any) error {
+	return util.ErrJSONUsedAsKey
 }
 
-func (xsql *XSql) dropCollectionIndex (args []*Mysqlx_Datatypes.Any) error {
-	return xsql.sendExecOk()
+func (xsql *XSql) dropCollectionIndex(args []*Mysqlx_Datatypes.Any) error {
+	return util.ErrJSONUsedAsKey
 }
 
-func (xsql *XSql) listObjects (args []*Mysqlx_Datatypes.Any) error {
+func (xsql *XSql) listObjects(args []*Mysqlx_Datatypes.Any) error {
 	if len(args) != 2 {
 		return errors.New("not enough arguments")
 	}
@@ -222,22 +222,22 @@ func (xsql *XSql) listObjects (args []*Mysqlx_Datatypes.Any) error {
 		return errors.Trace(err)
 	}
 	sql :=
-	"SELECT BINARY T.table_name AS name, " +
-	"IF(ANY_VALUE(T.table_type) LIKE '%VIEW', " +
-	"IF(COUNT(*)=1 AND " +
-	CountDoc +
-	"=1, 'COLLECTION_VIEW', 'VIEW'), IF(COUNT(*)-2 = " +
-	CountGen +
-	" AND " +
-	CountDoc +
-	"=1 AND " +
-		CountID +
-	"=1, 'COLLECTION', 'TABLE')) AS type " +
-	"FROM information_schema.tables AS T " +
-	"LEFT JOIN information_schema.columns AS C ON (" +
-	"BINARY T.table_schema = C.table_schema AND " +
-	"BINARY T.table_name = C.table_name) " +
-	"WHERE T.table_schema = "
+		"SELECT BINARY T.table_name AS name, " +
+			"IF(ANY_VALUE(T.table_type) LIKE '%VIEW', " +
+			"IF(COUNT(*)=1 AND " +
+			CountDoc +
+			"=1, 'COLLECTION_VIEW', 'VIEW'), IF(COUNT(*)-2 = " +
+			CountGen +
+			" AND " +
+			CountDoc +
+			"=1 AND " +
+			CountID +
+			"=1, 'COLLECTION', 'TABLE')) AS type " +
+			"FROM information_schema.tables AS T " +
+			"LEFT JOIN information_schema.columns AS C ON (" +
+			"BINARY T.table_schema = C.table_schema AND " +
+			"BINARY T.table_name = C.table_name) " +
+			"WHERE T.table_schema = "
 
 	if len(schema) == 0 {
 		sql += "schema()"
@@ -257,19 +257,19 @@ func (xsql *XSql) listObjects (args []*Mysqlx_Datatypes.Any) error {
 	return xsql.sendExecOk()
 }
 
-func (xsql *XSql) enableNotices (args []*Mysqlx_Datatypes.Any) error {
+func (xsql *XSql) enableNotices(args []*Mysqlx_Datatypes.Any) error {
 	return xsql.sendExecOk()
 }
 
-func (xsql *XSql) disableNotices (args []*Mysqlx_Datatypes.Any) error {
+func (xsql *XSql) disableNotices(args []*Mysqlx_Datatypes.Any) error {
 	return xsql.sendExecOk()
 }
 
-func (xsql *XSql) listNotices (args []*Mysqlx_Datatypes.Any) error {
+func (xsql *XSql) listNotices(args []*Mysqlx_Datatypes.Any) error {
 	return xsql.sendExecOk()
 }
 
-func (xsql *XSql) isSchemaSelectedAndExists (schema string) error {
+func (xsql *XSql) isSchemaSelectedAndExists(schema string) error {
 	sql := "SHOW TABLE"
 	if len(schema) != 0 {
 		sql = sql + " FROM " + quoteIdentifier(schema)

@@ -40,9 +40,9 @@ import (
 	"strconv"
 
 	"github.com/juju/errors"
+	"github.com/pingcap/tidb/driver"
 	"github.com/pingcap/tidb/mysql"
 	"github.com/pingcap/tidb/util/hack"
-	"github.com/pingcap/tidb/driver"
 )
 
 func (cc *mysqlClientConn) handleStmtPrepare(sql string) error {

@@ -1,12 +1,12 @@
 package server
 
 import (
-	"github.com/juju/errors"
 	log "github.com/Sirupsen/logrus"
+	"github.com/juju/errors"
+	"github.com/pingcap/tidb/mysql"
+	"github.com/pingcap/tidb/xprotocol/notice"
 	"github.com/pingcap/tipb/go-mysqlx"
 	"github.com/pingcap/tipb/go-mysqlx/Session"
-	"github.com/pingcap/tidb/xprotocol/notice"
-	"github.com/pingcap/tidb/mysql"
 )
 
 type sessionState int32
@@ -21,7 +21,7 @@ const (
 )
 
 type XAuth struct {
-	xcc *mysqlXClientConn
+	xcc         *mysqlXClientConn
 	authHandler AuthenticationHandler
 
 	mState            sessionState
@@ -169,4 +169,3 @@ func (xa *XAuth) SendAuthContinue(value *string) error {
 
 	return xa.xcc.pkt.WritePacket(int32(Mysqlx.ServerMessages_SESS_AUTHENTICATE_CONTINUE), data)
 }
-

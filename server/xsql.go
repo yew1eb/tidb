@@ -1,17 +1,17 @@
 package server
 
 import (
-	"github.com/pingcap/tidb/xprotocol/xpacketio"
-	"github.com/pingcap/tidb/xprotocol/util"
-	"github.com/pingcap/tidb/driver"
-	"github.com/pingcap/tipb/go-mysqlx/Sql"
-	"github.com/pingcap/tipb/go-mysqlx/Resultset"
-	"github.com/pingcap/tidb/mysql"
-	"github.com/pingcap/tipb/go-mysqlx"
-	"github.com/juju/errors"
 	log "github.com/Sirupsen/logrus"
+	"github.com/juju/errors"
+	"github.com/pingcap/tidb/driver"
+	"github.com/pingcap/tidb/mysql"
 	"github.com/pingcap/tidb/util/arena"
 	"github.com/pingcap/tidb/util/types"
+	"github.com/pingcap/tidb/xprotocol/util"
+	"github.com/pingcap/tidb/xprotocol/xpacketio"
+	"github.com/pingcap/tipb/go-mysqlx"
+	"github.com/pingcap/tipb/go-mysqlx/Resultset"
+	"github.com/pingcap/tipb/go-mysqlx/Sql"
 )
 
 type XSql struct {
@@ -20,16 +20,15 @@ type XSql struct {
 	pkt *xpacketio.XPacketIO
 }
 
-
 func CreateContext(xcc *mysqlXClientConn, ctx driver.QueryCtx, pkt *xpacketio.XPacketIO) *XSql {
 	return &XSql{
-		xcc:               xcc,
-		ctx:               ctx,
-		pkt:               pkt,
+		xcc: xcc,
+		ctx: ctx,
+		pkt: pkt,
 	}
 }
 
-func (xsql *XSql) DealSQLStmtExecute (msgType Mysqlx.ClientMessages_Type, payload []byte) error {
+func (xsql *XSql) DealSQLStmtExecute(msgType Mysqlx.ClientMessages_Type, payload []byte) error {
 	var msg Mysqlx_Sql.StmtExecute
 	if err := msg.Unmarshal(payload); err != nil {
 		return err
@@ -51,7 +50,7 @@ func (xsql *XSql) DealSQLStmtExecute (msgType Mysqlx.ClientMessages_Type, payloa
 	return nil
 }
 
-func (xsql *XSql) executeStmt (sql string) error {
+func (xsql *XSql) executeStmt(sql string) error {
 	rs, err := xsql.ctx.Execute(sql)
 	if err != nil {
 		return err
@@ -89,14 +88,14 @@ func (xsql *XSql) writeResultSet(r driver.ResultSet) error {
 			return errors.Trace(err)
 		}
 		flags := uint32(c.Flag)
-		columnMeta := Mysqlx_Resultset.ColumnMetaData {
-			Type: tp,
-			Name: []byte(c.Name),
-			Table: []byte(c.OrgName),
+		columnMeta := Mysqlx_Resultset.ColumnMetaData{
+			Type:          tp,
+			Name:          []byte(c.Name),
+			Table:         []byte(c.OrgName),
 			OriginalTable: []byte(c.OrgTable),
-			Schema: []byte(c.Schema),
-			Length: &c.ColumnLength,
-			Flags: &flags,
+			Schema:        []byte(c.Schema),
+			Length:        &c.ColumnLength,
+			Flags:         &flags,
 		}
 		data, err := columnMeta.Marshal()
 		if err != nil {

@@ -20,7 +20,6 @@ import (
 
 // HandlerTLS is read only value handler.
 type HandlerTLS struct {
-
 }
 
 // IsSupport implements Handler interface.

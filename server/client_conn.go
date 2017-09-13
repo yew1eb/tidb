@@ -19,13 +19,12 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pingcap/tidb/mysql"
-	"github.com/pingcap/tidb/xprotocol/xpacketio"
 	"github.com/pingcap/tidb/util"
 	"github.com/pingcap/tidb/util/arena"
+	"github.com/pingcap/tidb/xprotocol/xpacketio"
 )
 
 type clientConn interface {
-
 	handshake() error
 
 	Run()

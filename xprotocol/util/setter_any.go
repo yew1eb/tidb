@@ -19,7 +19,7 @@ import (
 
 func scalar2Any(scalar Mysqlx_Datatypes.Scalar) Mysqlx_Datatypes.Any {
 	any := Mysqlx_Datatypes.Any{
-		Type: Mysqlx_Datatypes.Any_SCALAR.Enum(),
+		Type:   Mysqlx_Datatypes.Any_SCALAR.Enum(),
 		Scalar: &scalar,
 	}
 	return any
@@ -27,8 +27,8 @@ func scalar2Any(scalar Mysqlx_Datatypes.Scalar) Mysqlx_Datatypes.Any {
 
 // SetSint sets signed int.
 func SetSint(data int64) Mysqlx_Datatypes.Any {
-	sca := Mysqlx_Datatypes.Scalar {
-		Type: Mysqlx_Datatypes.Scalar_V_SINT.Enum(),
+	sca := Mysqlx_Datatypes.Scalar{
+		Type:       Mysqlx_Datatypes.Scalar_V_SINT.Enum(),
 		VSignedInt: &data,
 	}
 	return scalar2Any(sca)
@@ -36,8 +36,8 @@ func SetSint(data int64) Mysqlx_Datatypes.Any {
 
 // SetUint sets unsigned int.
 func SetUint(data uint64) Mysqlx_Datatypes.Any {
-	sca := Mysqlx_Datatypes.Scalar {
-		Type: Mysqlx_Datatypes.Scalar_V_UINT.Enum(),
+	sca := Mysqlx_Datatypes.Scalar{
+		Type:         Mysqlx_Datatypes.Scalar_V_UINT.Enum(),
 		VUnsignedInt: &data,
 	}
 	return scalar2Any(sca)
@@ -48,8 +48,8 @@ func SetOct(data []byte) Mysqlx_Datatypes.Any {
 	oct := Mysqlx_Datatypes.Scalar_Octets{
 		Value: data,
 	}
-	sca := Mysqlx_Datatypes.Scalar {
-		Type: Mysqlx_Datatypes.Scalar_V_OCTETS.Enum(),
+	sca := Mysqlx_Datatypes.Scalar{
+		Type:    Mysqlx_Datatypes.Scalar_V_OCTETS.Enum(),
 		VOctets: &oct,
 	}
 	return scalar2Any(sca)
@@ -57,8 +57,8 @@ func SetOct(data []byte) Mysqlx_Datatypes.Any {
 
 // SetDouble sets double.
 func SetDouble(data float64) Mysqlx_Datatypes.Any {
-	sca := Mysqlx_Datatypes.Scalar {
-		Type: Mysqlx_Datatypes.Scalar_V_DOUBLE.Enum(),
+	sca := Mysqlx_Datatypes.Scalar{
+		Type:    Mysqlx_Datatypes.Scalar_V_DOUBLE.Enum(),
 		VDouble: &data,
 	}
 	return scalar2Any(sca)
@@ -66,8 +66,8 @@ func SetDouble(data float64) Mysqlx_Datatypes.Any {
 
 // SetFloat sets float.
 func SetFloat(data float32) Mysqlx_Datatypes.Any {
-	sca := Mysqlx_Datatypes.Scalar {
-		Type: Mysqlx_Datatypes.Scalar_V_FLOAT.Enum(),
+	sca := Mysqlx_Datatypes.Scalar{
+		Type:   Mysqlx_Datatypes.Scalar_V_FLOAT.Enum(),
 		VFloat: &data,
 	}
 	return scalar2Any(sca)
@@ -75,8 +75,8 @@ func SetFloat(data float32) Mysqlx_Datatypes.Any {
 
 // SetBool sets bool.
 func SetBool(data bool) Mysqlx_Datatypes.Any {
-	sca := Mysqlx_Datatypes.Scalar {
-		Type: Mysqlx_Datatypes.Scalar_V_BOOL.Enum(),
+	sca := Mysqlx_Datatypes.Scalar{
+		Type:  Mysqlx_Datatypes.Scalar_V_BOOL.Enum(),
 		VBool: &data,
 	}
 	return scalar2Any(sca)
@@ -87,8 +87,8 @@ func SetString(data []byte) Mysqlx_Datatypes.Any {
 	str := Mysqlx_Datatypes.Scalar_String{
 		Value: data,
 	}
-	sca := Mysqlx_Datatypes.Scalar {
-		Type: Mysqlx_Datatypes.Scalar_V_STRING.Enum(),
+	sca := Mysqlx_Datatypes.Scalar{
+		Type:    Mysqlx_Datatypes.Scalar_V_STRING.Enum(),
 		VString: &str,
 	}
 	return scalar2Any(sca)
@@ -100,11 +100,11 @@ func SetScalarArray(anys []Mysqlx_Datatypes.Any) Mysqlx_Datatypes.Any {
 	for _, v := range anys {
 		vals = append(vals, &v)
 	}
-	arr := Mysqlx_Datatypes.Array {
+	arr := Mysqlx_Datatypes.Array{
 		Value: vals,
 	}
-	val := Mysqlx_Datatypes.Any {
-		Type: Mysqlx_Datatypes.Any_ARRAY.Enum(),
+	val := Mysqlx_Datatypes.Any{
+		Type:  Mysqlx_Datatypes.Any_ARRAY.Enum(),
 		Array: &arr,
 	}
 	return val

@@ -17,17 +17,17 @@ import (
 	"io"
 	"net"
 
-	"github.com/juju/errors"
 	log "github.com/Sirupsen/logrus"
-	"github.com/pingcap/tidb/terror"
-	"github.com/pingcap/tidb/util"
-	xutil "github.com/pingcap/tidb/xprotocol/util"
-	"github.com/pingcap/tidb/xprotocol/xpacketio"
-	"github.com/pingcap/tidb/util/arena"
-	"github.com/pingcap/tipb/go-mysqlx"
-	"github.com/pingcap/tidb/xprotocol/capability"
+	"github.com/juju/errors"
 	"github.com/pingcap/tidb/driver"
 	"github.com/pingcap/tidb/mysql"
+	"github.com/pingcap/tidb/terror"
+	"github.com/pingcap/tidb/util"
+	"github.com/pingcap/tidb/util/arena"
+	"github.com/pingcap/tidb/xprotocol/capability"
+	xutil "github.com/pingcap/tidb/xprotocol/util"
+	"github.com/pingcap/tidb/xprotocol/xpacketio"
+	"github.com/pingcap/tipb/go-mysqlx"
 )
 
 // mysqlXClientConn represents a connection between server and client,
@@ -295,4 +295,3 @@ func (xs *XSession) HandleMessage(msgType Mysqlx.ClientMessages_Type, payload []
 
 	return nil
 }
-

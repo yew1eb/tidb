@@ -29,6 +29,7 @@ import (
 	"github.com/pingcap/tidb"
 	"github.com/pingcap/tidb/config"
 	"github.com/pingcap/tidb/ddl"
+	"github.com/pingcap/tidb/driver"
 	"github.com/pingcap/tidb/kv"
 	"github.com/pingcap/tidb/plan"
 	"github.com/pingcap/tidb/privilege/privileges"
@@ -42,7 +43,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"google.golang.org/grpc"
-	"github.com/pingcap/tidb/driver"
 )
 
 var (
@@ -217,7 +217,7 @@ func main() {
 		}()
 	}
 	select {
-	case err = <- srvError:
+	case err = <-srvError:
 	}
 	if err != nil {
 		log.Error(err)

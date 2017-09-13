@@ -2,11 +2,11 @@ package capability
 
 import (
 	"github.com/juju/errors"
+	"github.com/pingcap/tidb/mysql"
+	"github.com/pingcap/tidb/xprotocol/util"
 	"github.com/pingcap/tipb/go-mysqlx"
 	"github.com/pingcap/tipb/go-mysqlx/Connection"
 	"github.com/pingcap/tipb/go-mysqlx/Datatypes"
-	"github.com/pingcap/tidb/xprotocol/util"
-	"github.com/pingcap/tidb/mysql"
 )
 
 func getCapability(handler Handler) *Mysqlx_Connection.Capability {
@@ -19,15 +19,15 @@ func GetCapabilities() *Mysqlx_Connection.Capabilities {
 		Values: []string{"MYSQL41"},
 	}
 	docHandler := &HandlerReadOnlyValue{
-		Name: "doc.formats",
+		Name:  "doc.formats",
 		Value: "text",
 	}
 	nodeHandler := &HandlerReadOnlyValue{
-		Name: "node_type",
+		Name:  "node_type",
 		Value: "mysql",
 	}
 	pwdHandler := &HandlerExpiredPasswords{
-		Name: "client.pwd_expire_ok",
+		Name:    "client.pwd_expire_ok",
 		Expired: true,
 	}
 	caps := Mysqlx_Connection.Capabilities{
@@ -42,7 +42,7 @@ func GetCapabilities() *Mysqlx_Connection.Capabilities {
 }
 
 // DealInitCapabilitiesSet deals the initial capabilities set message of client.
-func DealInitCapabilitiesSet (tp Mysqlx.ClientMessages_Type, msg []byte) error {
+func DealInitCapabilitiesSet(tp Mysqlx.ClientMessages_Type, msg []byte) error {
 	if tp != Mysqlx.ClientMessages_CON_CAPABILITIES_SET {
 		return errors.New("bad capabilities set")
 	}
@@ -73,7 +73,7 @@ func DealInitCapabilitiesSet (tp Mysqlx.ClientMessages_Type, msg []byte) error {
 }
 
 // DealCapabilitiesGet deals capabilities get message, get message content will always be empty.
-func DealCapabilitiesGet (tp Mysqlx.ClientMessages_Type, _ []byte) error {
+func DealCapabilitiesGet(tp Mysqlx.ClientMessages_Type, _ []byte) error {
 	if tp != Mysqlx.ClientMessages_CON_CAPABILITIES_GET {
 		return errors.New("bad capabilities get")
 	}
@@ -81,7 +81,7 @@ func DealCapabilitiesGet (tp Mysqlx.ClientMessages_Type, _ []byte) error {
 }
 
 // DealSecCapabilitiesSet deals the second capabilities set message.
-func DealSecCapabilitiesSet (tp Mysqlx.ClientMessages_Type, msg []byte) error {
+func DealSecCapabilitiesSet(tp Mysqlx.ClientMessages_Type, msg []byte) error {
 	if tp != Mysqlx.ClientMessages_CON_CAPABILITIES_SET {
 		return errors.New("bad capabilities set")
 	}

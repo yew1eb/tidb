@@ -48,8 +48,8 @@ import (
 )
 
 const (
-	defaultXReaderSize = 4 + 4 * 1024 * 1024
-	defaultXWriterSize = 4 + 4 * 1024 * 1024
+	defaultXReaderSize = 4 + 4*1024*1024
+	defaultXWriterSize = 4 + 4*1024*1024
 )
 
 // XPacketIO is a helper to read and write data in packet format.
@@ -87,7 +87,6 @@ func (p *XPacketIO) ReadPacket() (int32, []byte, error) {
 func (p *XPacketIO) WritePacket(msgType int32, message []byte) error {
 	return p.writePacket(append([]byte{byte(msgType)}, message...))
 }
-
 
 func (p *XPacketIO) readPacket() ([]byte, error) {
 	header := make([]byte, 4)

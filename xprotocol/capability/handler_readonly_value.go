@@ -21,7 +21,7 @@ import (
 
 // HandlerReadOnlyValue is read only value handler.
 type HandlerReadOnlyValue struct {
-	Name string
+	Name  string
 	Value string
 }
 
@@ -44,7 +44,7 @@ func (h *HandlerReadOnlyValue) Get() *Mysqlx_Connection.Capability {
 	val := util.SetString([]byte(h.getValue()))
 	str := h.GetName()
 	c := Mysqlx_Connection.Capability{
-		Name: &str,
+		Name:  &str,
 		Value: &val,
 	}
 	return &c

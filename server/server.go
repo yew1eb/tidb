@@ -43,12 +43,12 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/juju/errors"
 	"github.com/pingcap/tidb/config"
+	"github.com/pingcap/tidb/driver"
 	"github.com/pingcap/tidb/mysql"
 	"github.com/pingcap/tidb/sessionctx/variable"
 	"github.com/pingcap/tidb/terror"
 	"github.com/pingcap/tidb/util"
 	"github.com/pingcap/tidb/util/arena"
-	"github.com/pingcap/tidb/driver"
 )
 
 var (
@@ -73,7 +73,7 @@ const defaultCapability = mysql.ClientLongPassword | mysql.ClientLongFlag |
 	mysql.ClientConnectAtts | mysql.ClientPluginAuth
 const (
 	// MysqlProtocol is MySQL Protocol
-	MysqlProtocol  = 1
+	MysqlProtocol = 1
 	// MysqlXProtocol is MySQL X Protocol
 	MysqlXProtocol = 2
 )
@@ -87,7 +87,7 @@ type Server struct {
 	rwlock            *sync.RWMutex
 	concurrentLimiter *TokenLimiter
 	typ               int
-	clients           map[uint32] clientConn
+	clients           map[uint32]clientConn
 	capability        uint32
 
 	// When a critical error occurred, we don't want to exit the process, because there may be
@@ -164,7 +164,7 @@ func NewServer(cfg *config.Config, driver driver.IDriver, serverType int) (*Serv
 	protocol := "MySQL"
 	if serverType == MysqlXProtocol {
 		socket = cfg.XSocket
-		addr   = cfg.XAddr
+		addr = cfg.XAddr
 		protocol = "MySQL X"
 	}
 
@@ -172,7 +172,7 @@ func NewServer(cfg *config.Config, driver driver.IDriver, serverType int) (*Serv
 	if (serverType == MysqlProtocol && cfg.Socket != "") || (serverType == MysqlXProtocol && cfg.XSocket != "") {
 		cfg.SkipAuth = true
 		if s.listener, err = net.Listen("unix", socket); err == nil {
-		        log.Infof("Server is running %s Protocol through Socket [%s]", protocol, socket)
+			log.Infof("Server is running %s Protocol through Socket [%s]", protocol, socket)
 		}
 	} else {
 		if s.listener, err = net.Listen("tcp", addr); err == nil {

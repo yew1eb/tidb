@@ -1,21 +1,21 @@
 package server
 
 import (
-	"net"
-	log "github.com/Sirupsen/logrus"
-	"github.com/pingcap/tidb/mysql"
-	xutil "github.com/pingcap/tidb/xprotocol/util"
-	"github.com/pingcap/tidb/util/auth"
-	"github.com/pingcap/tidb/util"
-	"github.com/pingcap/tipb/go-mysqlx"
 	"bytes"
+	log "github.com/Sirupsen/logrus"
 	"github.com/pingcap/tidb/driver"
+	"github.com/pingcap/tidb/mysql"
+	"github.com/pingcap/tidb/util"
+	"github.com/pingcap/tidb/util/auth"
+	xutil "github.com/pingcap/tidb/xprotocol/util"
+	"github.com/pingcap/tipb/go-mysqlx"
+	"net"
 )
 
 type authMysql41State int32
 
 const (
-	S_starting         authMysql41State = iota
+	S_starting authMysql41State = iota
 	S_waiting_response
 	S_done
 	S_error
@@ -25,7 +25,7 @@ type saslMysql41Auth struct {
 	m_state authMysql41State
 	m_salt  []byte
 
-	xauth	*XAuth
+	xauth *XAuth
 }
 
 func (spa *saslMysql41Auth) handleStart(mechanism *string, data []byte, initial_response []byte) *Response {

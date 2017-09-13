@@ -14,9 +14,9 @@
 package capability
 
 import (
+	"github.com/pingcap/tidb/xprotocol/util"
 	"github.com/pingcap/tipb/go-mysqlx/Connection"
 	"github.com/pingcap/tipb/go-mysqlx/Datatypes"
-	"github.com/pingcap/tidb/xprotocol/util"
 )
 
 // HandlerAuthMechanisms is read only value handler.
@@ -43,7 +43,7 @@ func (h *HandlerAuthMechanisms) Get() *Mysqlx_Connection.Capability {
 	val := util.SetScalarArray(meths)
 	str := h.GetName()
 	c := Mysqlx_Connection.Capability{
-		Name: &str,
+		Name:  &str,
 		Value: &val,
 	}
 	return &c

@@ -50,10 +50,10 @@ import (
 )
 
 const (
-	codeInvalidType       = 4
+	codeInvalidType = 4
 )
 
-var errInvalidType       = terror.ClassServer.New(codeInvalidType, "invalid type")
+var errInvalidType = terror.ClassServer.New(codeInvalidType, "invalid type")
 
 func ParseLengthEncodedInt(b []byte) (num uint64, isNull bool, n int) {
 	switch b[0] {

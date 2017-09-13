@@ -62,7 +62,7 @@ import (
 // mysqlClientConn represents a connection between server and client, it maintains connection specific state,
 // handles client query.
 type mysqlClientConn struct {
-	pkt          *packetIO // a helper to read and write data in packet format.
+	pkt          *packetIO         // a helper to read and write data in packet format.
 	bufReadConn  *bufferedReadConn // a buffered-read net.Conn or buffered-read tls.Conn.
 	tlsConn      *tls.Conn         // TLS connection, nil if not TLS.
 	server       *Server           // a reference of server instance.
@@ -74,7 +74,7 @@ type mysqlClientConn struct {
 	salt         []byte            // random bytes used for authentication.
 	alloc        arena.Allocator   // an memory allocator for reducing memory allocation.
 	lastCmd      string            // latest sql query string, currently used for logging error.
-	ctx          driver.QueryCtx          // an interface to execute sql statements.
+	ctx          driver.QueryCtx   // an interface to execute sql statements.
 	attrs        map[string]string // attributes parsed from client handshake response, not used for now.
 	killed       bool
 }

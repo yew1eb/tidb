@@ -1,11 +1,11 @@
 package notice
 
 import (
-	"github.com/pingcap/tipb/go-mysqlx/Notice"
+	"github.com/pingcap/tidb/mysql"
 	"github.com/pingcap/tidb/xprotocol/xpacketio"
 	"github.com/pingcap/tipb/go-mysqlx"
 	"github.com/pingcap/tipb/go-mysqlx/Datatypes"
-	"github.com/pingcap/tidb/mysql"
+	"github.com/pingcap/tipb/go-mysqlx/Notice"
 )
 
 type Notice struct {
@@ -93,9 +93,9 @@ func SendInitError(pkt *xpacketio.XPacketIO, code *uint16, msg *string) error {
 	sqlState := mysql.DefaultMySQLState
 	severity := Mysqlx.Error_Severity(Mysqlx.Error_FATAL)
 	mysqlxErr := Mysqlx.Error{
-		Code: &errCode,
+		Code:     &errCode,
 		SqlState: &sqlState,
-		Msg: msg,
+		Msg:      msg,
 		Severity: &severity,
 	}
 

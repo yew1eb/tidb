@@ -21,7 +21,7 @@ import (
 
 // HandlerExpiredPasswords is read only value handler.
 type HandlerExpiredPasswords struct {
-	Name string
+	Name    string
 	Expired bool
 }
 
@@ -40,7 +40,7 @@ func (h *HandlerExpiredPasswords) Get() *Mysqlx_Connection.Capability {
 	val := util.SetBool(h.Expired)
 	str := h.GetName()
 	c := Mysqlx_Connection.Capability{
-		Name: &str,
+		Name:  &str,
 		Value: &val,
 	}
 	return &c
@@ -50,4 +50,3 @@ func (h *HandlerExpiredPasswords) Get() *Mysqlx_Connection.Capability {
 func (h *HandlerExpiredPasswords) Set(any *Mysqlx_Datatypes.Any) bool {
 	return false
 }
-

@@ -7,7 +7,7 @@ import (
 type Status int32
 
 const (
-	Ongoing   Status = iota
+	Ongoing Status = iota
 	Succeeded
 	Failed
 	Error
@@ -24,12 +24,12 @@ type AuthenticationHandler interface {
 	handleContinue(data []byte) *Response
 }
 
-func (xa *XAuth)createAuthHandler(method string) AuthenticationHandler {
+func (xa *XAuth) createAuthHandler(method string) AuthenticationHandler {
 	switch method {
 	case "MYSQL41":
 		return &saslMysql41Auth{
-			m_state:  S_starting,
-			xauth: xa,
+			m_state: S_starting,
+			xauth:   xa,
 		}
 	case "PLAIN":
 		return &saslPlainAuth{}
