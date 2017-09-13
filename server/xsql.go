@@ -1,4 +1,4 @@
-package sql
+package server
 
 import (
 	"github.com/pingcap/tidb/xprotocol/xpacketio"
@@ -15,15 +15,15 @@ import (
 )
 
 type XSql struct {
-	alloc *arena.Allocator
+	xcc *mysqlXClientConn
 	ctx driver.QueryCtx
 	pkt *xpacketio.XPacketIO
 }
 
 
-func CreateContext(alloc *arena.Allocator, ctx driver.QueryCtx, pkt *xpacketio.XPacketIO) *XSql {
+func CreateContext(xcc *mysqlXClientConn, ctx driver.QueryCtx, pkt *xpacketio.XPacketIO) *XSql {
 	return &XSql{
-		alloc:             alloc,
+		xcc:               xcc,
 		ctx:               ctx,
 		pkt:               pkt,
 	}
@@ -119,7 +119,7 @@ func (xsql *XSql) writeResultSet(r driver.ResultSet) error {
 			return errors.Trace(err)
 		}
 
-		rowData, err := rowToRow(*xsql.alloc, cols, row)
+		rowData, err := rowToRow(xsql.xcc.alloc, cols, row)
 		if err != nil {
 			return errors.Trace(err)
 		}

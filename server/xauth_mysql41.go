@@ -9,7 +9,6 @@ import (
 	"github.com/pingcap/tidb/util"
 	"github.com/pingcap/tipb/go-mysqlx"
 	"bytes"
-	"github.com/pingcap/tidb/xprotocol"
 	"github.com/pingcap/tidb/driver"
 )
 
@@ -66,7 +65,7 @@ func (spa *saslMysql41Auth) handleContinue(data []byte) *Response {
 		if err1 != nil {
 			err = xutil.ErrXNoSuchUser
 		}
-		xcc.xsession = xprotocol.CreateXSession(&xcc.alloc, xcc.connectionID, ctx, xcc.pkt, xcc.server.skipAuth())
+		xcc.xsession = CreateXSession(xcc, xcc.connectionID, ctx, xcc.pkt, xcc.server.skipAuth())
 		xcc.ctx, err1 = xcc.server.driver.OpenCtx(uint64(xcc.connectionID), xcc.capability, uint8(xcc.collation), xcc.dbname, nil)
 
 		if !spa.xauth.xcc.server.skipAuth() {

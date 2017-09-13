@@ -82,6 +82,7 @@ const (
 	ClassGlobal
 	ClassMockTikv
 	ClassJSON
+	ClassXProtocol
 	// Add more as needed.
 )
 
@@ -107,6 +108,7 @@ var errClz2Str = map[ErrClass]string{
 	ClassTypes:         "types",
 	ClassGlobal:        "global",
 	ClassMockTikv:      "mocktikv",
+	ClassXProtocol:     "mysqlx",
 }
 
 // String implements fmt.Stringer interface.

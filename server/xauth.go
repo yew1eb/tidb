@@ -6,7 +6,6 @@ import (
 	"github.com/pingcap/tipb/go-mysqlx"
 	"github.com/pingcap/tipb/go-mysqlx/Session"
 	"github.com/pingcap/tidb/xprotocol/notice"
-	"github.com/pingcap/tidb/xprotocol/util"
 	"github.com/pingcap/tidb/mysql"
 )
 
@@ -66,7 +65,7 @@ func (xa *XAuth) HandleAuthMessage(msgType Mysqlx.ClientMessages_Type, payload [
 		var data Mysqlx_Session.AuthenticateStart
 		if err := data.Unmarshal(payload); err != nil {
 			log.Errorf("Can't Unmarshal message %s, err %s", msgType.String(), err.Error())
-			errCode := util.ErXBadMessage
+			var errCode uint16 = mysql.ErXBadMessage
 			content := "Invalid message"
 			notice.SendInitError(xa.xcc.pkt, &errCode, &content)
 			return err
@@ -86,7 +85,7 @@ func (xa *XAuth) HandleAuthMessage(msgType Mysqlx.ClientMessages_Type, payload [
 	case Mysqlx.ClientMessages_SESS_AUTHENTICATE_CONTINUE:
 		var data Mysqlx_Session.AuthenticateContinue
 		if err := data.Unmarshal(payload); err != nil {
-			errCode := util.ErXBadMessage
+			var errCode uint16 = mysql.ErXBadMessage
 			content := "Invalid message"
 			notice.SendInitError(xa.xcc.pkt, &errCode, &content)
 			return err
@@ -94,7 +93,7 @@ func (xa *XAuth) HandleAuthMessage(msgType Mysqlx.ClientMessages_Type, payload [
 
 		r = xa.authHandler.handleContinue(data.GetAuthData())
 	default:
-		errCode := util.ErXBadMessage
+		var errCode uint16 = mysql.ErXBadMessage
 		content := "Invalid message"
 		notice.SendInitError(xa.xcc.pkt, &errCode, &content)
 		xa.stopAuth()

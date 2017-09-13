@@ -27,7 +27,6 @@ import (
 	"github.com/pingcap/tipb/go-mysqlx"
 	"github.com/pingcap/tidb/xprotocol/capability"
 	"github.com/pingcap/tidb/driver"
-	"github.com/pingcap/tidb/xprotocol"
 	"github.com/pingcap/tidb/mysql"
 )
 
@@ -37,7 +36,7 @@ type mysqlXClientConn struct {
 	pkt          *xpacketio.XPacketIO // a helper to read and write data in packet format.
 	conn         net.Conn
 	xauth        XAuth
-	xsession     *xprotocol.XSession
+	xsession     *XSession
 	server       *Server           // a reference of server instance.
 	capability   uint32            // client capability affects the way server handles client request.
 	connectionID uint32            // atomically allocated by a global variable, unique in process scope.
@@ -160,7 +159,7 @@ func (xcc *mysqlXClientConn) handshakeSession() error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	xcc.xsession = xprotocol.CreateXSession(&xcc.alloc, xcc.connectionID, ctx, xcc.pkt, xcc.server.skipAuth())
+	xcc.xsession = CreateXSession(xcc, xcc.connectionID, ctx, xcc.pkt, xcc.server.skipAuth())
 
 	xcc.xauth = *xcc.CreateAuth(xcc.connectionID)
 	if err := xcc.xauth.handleMessage(Mysqlx.ClientMessages_Type(tp), msg); err != nil {
@@ -273,3 +272,27 @@ func (xcc *mysqlXClientConn) CreateAuth(id uint32) *XAuth {
 		mStateBeforeClose: authenticating,
 	}
 }
+
+type XSession struct {
+	xsql *XSql
+}
+
+func CreateXSession(xcc *mysqlXClientConn, id uint32, ctx driver.QueryCtx, pkt *xpacketio.XPacketIO, skipAuth bool) *XSession {
+	return &XSession{
+		xsql: CreateContext(xcc, ctx, pkt),
+	}
+}
+
+func (xs *XSession) HandleMessage(msgType Mysqlx.ClientMessages_Type, payload []byte) error {
+	switch msgType {
+	case Mysqlx.ClientMessages_SQL_STMT_EXECUTE:
+		if err := xs.xsql.DealSQLStmtExecute(msgType, payload); err != nil {
+			return err
+		}
+	default:
+		return errors.Errorf("unknown message type %d", msgType)
+	}
+
+	return nil
+}
+
