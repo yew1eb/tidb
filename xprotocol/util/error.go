@@ -31,6 +31,7 @@ var (
 	ErrTableExists       = terror.ClassXProtocol.New(codeErrTableExists, mysql.MySQLErrName[mysql.ErrTableExists])
 	ErXInvalidCollection = terror.ClassXProtocol.New(codeErXInvalidCollection, mysql.MySQLErrName[mysql.ErXInvalidCollection])
 	ErrJSONUsedAsKey     = terror.ClassXProtocol.New(codeErrJSONUsedAsKey, mysql.MySQLErrName[mysql.ErrJSONUsedAsKey])
+	ErXBadNotice         = terror.ClassXProtocol.New(codeErXBadNotice, mysql.MySQLErrName[mysql.ErXBadNotice])
 )
 
 const (
@@ -39,6 +40,7 @@ const (
 	codeErrTableExists                      = terror.ErrCode(mysql.ErrTableExists)
 	codeErXInvalidCollection                = terror.ErrCode(mysql.ErXInvalidCollection)
 	codeErrJSONUsedAsKey                    = terror.ErrCode(mysql.ErrJSONUsedAsKey)
+	codeErXBadNotice                        = terror.ErrCode(mysql.ErXBadNotice)
 )
 
 func init() {
@@ -48,6 +50,7 @@ func init() {
 		codeErrTableExists:       mysql.ErrTableExists,
 		codeErXInvalidCollection: mysql.ErXInvalidCollection,
 		codeErrJSONUsedAsKey:     mysql.ErrJSONUsedAsKey,
+		codeErXBadNotice:         mysql.ErXBadNotice,
 	}
 	terror.ErrClassToMySQLCodes[terror.ClassXProtocol] = xProtocolMySQLErrCodes
 }

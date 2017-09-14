@@ -7,6 +7,7 @@ import (
 	"github.com/pingcap/tidb/xprotocol/util"
 	"github.com/pingcap/tipb/go-mysqlx/Datatypes"
 	"github.com/pingcap/tipb/go-mysqlx/Sql"
+	"strings"
 )
 
 const (
@@ -258,6 +259,21 @@ func (xsql *XSql) listObjects(args []*Mysqlx_Datatypes.Any) error {
 }
 
 func (xsql *XSql) enableNotices(args []*Mysqlx_Datatypes.Any) error {
+	enableWarning := false
+	for _, v := range args {
+		if err := isString(v); err != nil {
+			return errors.Trace(err)
+		}
+		notice := string(v.GetScalar().GetVString().GetValue())
+		if strings.EqualFold(notice, "warning") {
+			enableWarning = true
+		} else if err := isFixedNoticeName(notice); err != nil {
+			return errors.Trace(err)
+		}
+		if enableWarning {
+			// TODO: enable warning here, need a context.
+		}
+	}
 	return xsql.sendExecOk()
 }
 
@@ -317,4 +333,29 @@ func (xsql *XSql) isCollection(schema string, collection string) (bool, error) {
 	//row, err := rs[0].Next()
 	//cols, err := rs[0].Columns()
 	//rowData, err := rowToRow(xsql.xcc.alloc, cols, row)
+}
+
+func isString(any *Mysqlx_Datatypes.Any) error {
+	if any.GetType() != Mysqlx_Datatypes.Any_SCALAR {
+		return errors.Errorf("wrong type, need %s, but get %s",
+			Mysqlx_Datatypes.Any_Type_name[int32(Mysqlx_Datatypes.Any_SCALAR)],
+			Mysqlx_Datatypes.Any_Type_name[int32(any.GetType())])
+	}
+	if any.GetScalar().GetType() != Mysqlx_Datatypes.Scalar_V_STRING {
+		return errors.Errorf("wrong type, need %s, but get %s",
+			Mysqlx_Datatypes.Scalar_Type_name[int32(Mysqlx_Datatypes.Scalar_V_STRING)],
+			Mysqlx_Datatypes.Scalar_Type_name[int32(any.GetScalar().GetType())])
+	}
+	return nil
+}
+
+var fixedNoticeNames = [4]string{"account_expired", "generated_insert_id", "rows_affected", "produced_message"}
+
+func isFixedNoticeName(name string) error {
+	for _, v := range fixedNoticeNames {
+		if strings.EqualFold(name, v) {
+			return nil
+		}
+	}
+	return util.ErXBadNotice
 }
