@@ -41,13 +41,7 @@ type clientConn interface {
 func createClientConn(conn net.Conn, s *Server) clientConn {
 	switch s.typ {
 	case MysqlProtocol:
-		return &mysqlClientConn{
-			server:       s,
-			connectionID: atomic.AddUint32(&baseConnID, 1),
-			collation:    mysql.DefaultCollationID,
-			alloc:        arena.NewAllocator(32 * 1024),
-			salt:         util.RandomBuf(mysql.ScrambleLength),
-		}
+		return s.newConn(conn)
 	case MysqlXProtocol:
 		return &mysqlXClientConn{
 			conn:         conn,
