@@ -26,25 +26,35 @@ const (
 func (xsql *XSql) dispatchAdminCmd(msg Mysqlx_Sql.StmtExecute) error {
 	stmt := string(msg.GetStmt())
 	log.Infof("[YUSP] %s", stmt)
+	var err error
 	args := msg.GetArgs()
 	switch stmt {
 	case "ping":
+		err = xsql.ping(args)
 	case "list_clients":
 	case "kill_client":
+		err = xsql.killClient(args)
 	case "create_collection":
+		err = xsql.createCollection(args)
 	case "drop_collection":
+		err = xsql.dropCollection(args)
 	case "ensure_collection":
+		err = xsql.ensureCollection(args)
 	case "create_collection_index":
+		err = xsql.createCollectionIndex(args)
 	case "drop_collection_index":
+		err = xsql.dropCollectionIndex(args)
 	case "list_objects":
-		if err := xsql.listObjects(args); err != nil {
-			return errors.Trace(err)
-		}
+		err = xsql.listObjects(args)
 	case "enable_notices":
+		err = xsql.enableNotices(args)
 	case "disable_notices":
 	case "list_notices":
 	default:
 		return errors.New("unknown statement")
+	}
+	if err != nil {
+		return errors.Trace(err)
 	}
 	return nil
 }
@@ -115,7 +125,7 @@ func (xsql *XSql) createCollectionImpl(args []*Mysqlx_Datatypes.Any) error {
 		") CHARSET utf8mb4 ENGINE=InnoDB;"
 	log.Infof("CreateCollection: %s", collection)
 
-	return xsql.executeStmt(sql)
+	return xsql.executeStmtNoResult(sql)
 }
 
 func (xsql *XSql) createCollection(args []*Mysqlx_Datatypes.Any) error {
@@ -180,7 +190,7 @@ func (xsql *XSql) dropCollection(args []*Mysqlx_Datatypes.Any) error {
 	}
 	sql := "DROP TABLE" + quoteString(schema) + "." + quoteString(collection)
 	log.Infof("DropCollection: %s", collection)
-	if err := xsql.executeStmt(sql); err != nil {
+	if err := xsql.executeStmtNoResult(sql); err != nil {
 		return errors.Trace(err)
 	}
 	return xsql.sendExecOk()
@@ -256,7 +266,7 @@ func (xsql *XSql) listObjects(args []*Mysqlx_Datatypes.Any) error {
 	if err := xsql.executeStmt(sql); err != nil {
 		return errors.Trace(err)
 	}
-	return xsql.sendExecOk()
+	return nil
 }
 
 func (xsql *XSql) enableNotices(args []*Mysqlx_Datatypes.Any) error {
