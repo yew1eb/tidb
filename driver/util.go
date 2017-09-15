@@ -126,6 +126,20 @@ func ParseLengthEncodedBytes(b []byte) ([]byte, bool, int, error) {
 	return nil, false, n, io.EOF
 }
 
+func DumpEncodedString(b []byte, alloc arena.Allocator, isXProtocol bool) []byte {
+	if isXProtocol {
+		return Dump0EndEncodedString(b, alloc)
+	}
+	return DumpLengthEncodedString(b, alloc)
+}
+
+func Dump0EndEncodedString(b []byte, alloc arena.Allocator) []byte {
+	data := alloc.Alloc(len(b) + 1)
+	data = append(data, b...)
+	data = append(data, byte(0))
+	return data
+}
+
 func DumpLengthEncodedString(b []byte, alloc arena.Allocator) []byte {
 	data := alloc.Alloc(len(b) + 9)
 	data = append(data, DumpLengthEncodedInt(uint64(len(b)))...)
@@ -269,7 +283,7 @@ func DumpRowValuesBinary(alloc arena.Allocator, columns []*ColumnInfo, row []typ
 	}
 	data = append(data, nulls...)
 	for i, val := range row {
-		datum, err := DumpDatumToBinary(alloc, columns[i], val)
+		datum, err := DumpDatumToBinary(alloc, columns[i], val, false)
 		if err != nil {
 			return nil, errors.Trace(err)
 		}
@@ -278,7 +292,7 @@ func DumpRowValuesBinary(alloc arena.Allocator, columns []*ColumnInfo, row []typ
 	return
 }
 
-func DumpDatumToBinary(alloc arena.Allocator, column *ColumnInfo, val types.Datum) ([]byte, error) {
+func DumpDatumToBinary(alloc arena.Allocator, column *ColumnInfo, val types.Datum, isXProtocol bool) ([]byte, error) {
 	var data []byte
 	switch val.Kind() {
 	case types.KindInt64:
@@ -312,9 +326,9 @@ func DumpDatumToBinary(alloc arena.Allocator, column *ColumnInfo, val types.Datu
 		floatBits := math.Float64bits(val.GetFloat64())
 		data = append(data, DumpUint64(floatBits)...)
 	case types.KindString, types.KindBytes:
-		data = append(data, DumpLengthEncodedString(val.GetBytes(), alloc)...)
+		data = append(data, DumpEncodedString(val.GetBytes(), alloc, isXProtocol)...)
 	case types.KindMysqlDecimal:
-		data = append(data, DumpLengthEncodedString(hack.Slice(val.GetMysqlDecimal().String()), alloc)...)
+		data = append(data, DumpEncodedString(hack.Slice(val.GetMysqlDecimal().String()), alloc, isXProtocol)...)
 	case types.KindMysqlTime:
 		tmp, err := DumpBinaryDateTime(val.GetMysqlTime(), nil)
 		if err != nil {
@@ -324,11 +338,11 @@ func DumpDatumToBinary(alloc arena.Allocator, column *ColumnInfo, val types.Datu
 	case types.KindMysqlDuration:
 		data = append(data, DumpBinaryTime(val.GetMysqlDuration().Duration)...)
 	case types.KindMysqlSet:
-		data = append(data, DumpLengthEncodedString(hack.Slice(val.GetMysqlSet().String()), alloc)...)
+		data = append(data, DumpEncodedString(hack.Slice(val.GetMysqlSet().String()), alloc, isXProtocol)...)
 	case types.KindMysqlEnum:
-		data = append(data, DumpLengthEncodedString(hack.Slice(val.GetMysqlEnum().String()), alloc)...)
+		data = append(data, DumpEncodedString(hack.Slice(val.GetMysqlEnum().String()), alloc, isXProtocol)...)
 	case types.KindMysqlBit:
-		data = append(data, DumpLengthEncodedString(hack.Slice(val.GetMysqlBit().ToString()), alloc)...)
+		data = append(data, DumpEncodedString(hack.Slice(val.GetMysqlBit().ToString()), alloc, isXProtocol)...)
 	}
 	return data, nil
 }

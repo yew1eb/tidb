@@ -153,7 +153,7 @@ func rowToRow(alloc arena.Allocator, columns []*driver.ColumnInfo, row []types.D
 	}
 	var fields [][]byte
 	for i, val := range row {
-		datum, err := driver.DumpDatumToBinary(alloc, columns[i], val)
+		datum, err := driver.DumpDatumToBinary(alloc, columns[i], val, true)
 		if err != nil {
 			return nil, errors.Trace(err)
 		}
