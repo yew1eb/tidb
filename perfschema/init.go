@@ -32,13 +32,13 @@ type columnInfo struct {
 }
 
 var globalStatusCols = []columnInfo{
-	{mysql.TypeString, 64, mysql.NotNullFlag, `%`, nil},
-	{mysql.TypeString, 1024, 0, `%`, nil},
+	{mysql.TypeVarString, 64, mysql.NotNullFlag, `%`, nil},
+	{mysql.TypeVarString, 3072, 0, `%`, nil},
 }
 
 var sessionStatusCols = []columnInfo{
-	{mysql.TypeString, 64, mysql.NotNullFlag, `%`, nil},
-	{mysql.TypeString, 1024, 0, `%`, nil},
+	{mysql.TypeVarString, 64, mysql.NotNullFlag, `%`, nil},
+	{mysql.TypeVarString, 3072, 0, `%`, nil},
 }
 
 var setupActorsCols = []columnInfo{
@@ -347,5 +347,7 @@ func (ps *perfSchema) GetDBMeta() *model.DBInfo {
 
 func (ps *perfSchema) GetTable(name string) (table.Table, bool) {
 	tbl, ok := ps.mTables[name]
+	data := []types.Datum{types.NewStringDatum("mysqlx_ssl_cipher"), types.NewStringDatum("")}
+	tbl.AddRecord(nil, data)
 	return tbl, ok
 }

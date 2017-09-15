@@ -25,6 +25,7 @@ const (
 
 func (xsql *XSql) dispatchAdminCmd(msg Mysqlx_Sql.StmtExecute) error {
 	stmt := string(msg.GetStmt())
+	log.Infof("[YUSP] %s", stmt)
 	args := msg.GetArgs()
 	switch stmt {
 	case "ping":
@@ -107,9 +108,9 @@ func (xsql *XSql) createCollectionImpl(args []*Mysqlx_Datatypes.Any) error {
 
 	sql := "CREATE TABLE "
 	if len(schema) != 0 {
-		sql += quoteIdentifier(schema) + "."
+		sql += quoteString(schema) + "."
 	}
-	sql += quoteIdentifier(collection) + " (doc JSON," +
+	sql += quoteString(collection) + " (doc JSON," +
 		"_id VARCHAR(32) GENERATED ALWAYS AS (JSON_UNQUOTE(JSON_EXTRACT(doc, '$._id'))) STORED PRIMARY KEY" +
 		") CHARSET utf8mb4 ENGINE=InnoDB;"
 	log.Infof("CreateCollection: %s", collection)
@@ -177,7 +178,7 @@ func (xsql *XSql) dropCollection(args []*Mysqlx_Datatypes.Any) error {
 	if len(collection) == 0 {
 		return util.ErXBadTable
 	}
-	sql := "DROP TABLE" + quoteIdentifier(schema) + "." + quoteIdentifier(collection)
+	sql := "DROP TABLE" + quoteString(schema) + "." + quoteString(collection)
 	log.Infof("DropCollection: %s", collection)
 	if err := xsql.executeStmt(sql); err != nil {
 		return errors.Trace(err)
@@ -243,11 +244,11 @@ func (xsql *XSql) listObjects(args []*Mysqlx_Datatypes.Any) error {
 	if len(schema) == 0 {
 		sql += "schema()"
 	} else {
-		sql += quoteIdentifier(schema)
+		sql += quoteString(schema)
 	}
 
 	if len(pattern) != 0 {
-		sql += " AND T.table_name LIKE " + quoteIdentifier(pattern)
+		sql += " AND T.table_name LIKE " + quoteString(pattern)
 	}
 
 	sql += " GROUP BY name ORDER BY name"
@@ -286,11 +287,11 @@ func (xsql *XSql) listNotices(args []*Mysqlx_Datatypes.Any) error {
 }
 
 func (xsql *XSql) isSchemaSelectedAndExists(schema string) error {
-	sql := "SHOW TABLE"
+	sql := "SHOW TABLES"
 	if len(schema) != 0 {
 		sql = sql + " FROM " + quoteIdentifier(schema)
 	}
-	if err := xsql.executeStmt(sql); err != nil {
+	if err := xsql.executeStmtNoResult(sql); err != nil {
 		return errors.Trace(err)
 	}
 	return nil
@@ -300,14 +301,18 @@ func quoteIdentifier(str string) string {
 	return "`" + str + "`"
 }
 
+func quoteString(str string) string {
+	return "'" + str + "'"
+}
+
 func (xsql *XSql) isCollection(schema string, collection string) (bool, error) {
 	sql := "SELECT COUNT(*) AS cnt," + CountDoc + " As doc," + CountID + " AS id," + CountGen +
 		" AS gen " + "FROM information_schema.columns WHERE table_name = " +
-		quoteIdentifier(collection) + " AND table_schema = "
+		quoteString(collection) + " AND table_schema = "
 	if len(schema) == 0 {
 		sql += "schema()"
 	} else {
-		sql += quoteIdentifier(schema)
+		sql += quoteString(schema)
 	}
 	log.Infof("[YUSP] sql: %s", sql)
 	rs, err := xsql.ctx.Execute(sql)

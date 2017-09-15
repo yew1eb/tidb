@@ -100,7 +100,6 @@ func (spa *saslMysql41Auth) handleContinue(data []byte) *Response {
 }
 
 func (spa *saslMysql41Auth) extractNullTerminatedElement(data []byte) ([]byte, []byte, []byte) {
-	log.Infof("[YUSP] %v", data)
 	log.Infof("[YUSP] %s", data)
 	slices := bytes.Split(data, []byte{0})
 	return slices[0], slices[1], slices[2]

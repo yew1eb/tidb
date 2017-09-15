@@ -50,6 +50,13 @@ func (xsql *XSql) DealSQLStmtExecute(msgType Mysqlx.ClientMessages_Type, payload
 	return nil
 }
 
+func (xsql *XSql) executeStmtNoResult(sql string) error {
+	if _, err := xsql.ctx.Execute(sql); err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
 func (xsql *XSql) executeStmt(sql string) error {
 	rs, err := xsql.ctx.Execute(sql)
 	if err != nil {
@@ -60,7 +67,7 @@ func (xsql *XSql) executeStmt(sql string) error {
 			return err
 		}
 	}
-	return xsql.sendExecOk()
+	return nil
 }
 
 func (xsql *XSql) sendExecOk() error {
@@ -136,7 +143,8 @@ func (xsql *XSql) writeResultSet(r driver.ResultSet) error {
 	if err := xsql.pkt.WritePacket(int32(Mysqlx.ServerMessages_RESULTSET_FETCH_DONE), []byte{}); err != nil {
 		return errors.Trace(err)
 	}
-	return nil
+	log.Infof("[YUSP] Fetch done sent!")
+	return xsql.pkt.WritePacket(int32(Mysqlx.ServerMessages_SQL_STMT_EXECUTE_OK), []byte{})
 }
 
 func rowToRow(alloc arena.Allocator, columns []*driver.ColumnInfo, row []types.Datum) (*Mysqlx_Resultset.Row, error) {
