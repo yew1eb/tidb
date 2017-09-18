@@ -38,7 +38,9 @@ func (xsql *XSql) DealSQLStmtExecute(msgType Mysqlx.ClientMessages_Type, payload
 	switch msg.GetNamespace() {
 	case "xplugin", "mysqlx":
 		// TODO: 'xplugin' is deprecated, need to send a notice message.
-		xsql.dispatchAdminCmd(msg)
+		if err := xsql.dispatchAdminCmd(msg); err != nil {
+			return errors.Trace(err)
+		}
 	case "sql", "":
 		sql := string(msg.GetStmt())
 		log.Infof("[YUSP] %s", sql)
@@ -72,8 +74,10 @@ func (xsql *XSql) executeStmt(sql string) error {
 }
 
 func (xsql *XSql) sendExecOk() error {
-	if err := notice.SendDefault(xsql.pkt); err != nil {
-		return errors.Trace(err)
+	if xsql.ctx.LastInsertID() > 0 {
+		if err := notice.SendLastInsertID(xsql.pkt, xsql.ctx.LastInsertID()); err != nil {
+			return errors.Trace(err)
+		}
 	}
 	if err := xsql.pkt.WritePacket(int32(Mysqlx.ServerMessages_SQL_STMT_EXECUTE_OK), nil); err != nil {
 		return errors.Trace(err)

@@ -62,10 +62,10 @@ func SendOK(pkt *xpacketio.XPacketIO, content *string) error {
 	return notice.SendLocalNotice(false)
 }
 
-func SendDefault(pkt *xpacketio.XPacketIO) error {
+func SendLastInsertID(pkt *xpacketio.XPacketIO, lastID uint64) error {
 	param := Mysqlx_Notice.SessionStateChanged_Parameter(Mysqlx_Notice.SessionStateChanged_GENERATED_INSERT_ID)
 	scalarType := Mysqlx_Datatypes.Scalar_V_UINT
-	id := uint64(0)
+	id := lastID
 	msg := Mysqlx_Notice.SessionStateChanged{
 		Param: &param,
 		Value: &Mysqlx_Datatypes.Scalar{

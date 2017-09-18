@@ -63,7 +63,7 @@ func (xsql *XSql) ping(args []*Mysqlx_Datatypes.Any) error {
 	if len(args) != 0 {
 		return errors.New("not enough arguments")
 	}
-	return xsql.sendExecOk()
+	return nil
 }
 
 func (xsql *XSql) listClients() error {
@@ -86,7 +86,7 @@ func (xsql *XSql) killClient(args []*Mysqlx_Datatypes.Any) error {
 	}
 	id := args[0].GetScalar().GetVUnsignedInt()
 	xsql.xcc.server.Kill(id, false)
-	return xsql.sendExecOk()
+	return nil
 }
 
 func (xsql *XSql) createCollectionImpl(args []*Mysqlx_Datatypes.Any) error {
@@ -118,9 +118,9 @@ func (xsql *XSql) createCollectionImpl(args []*Mysqlx_Datatypes.Any) error {
 
 	sql := "CREATE TABLE "
 	if len(schema) != 0 {
-		sql += schema + "."
+		sql += quoteIdentifier(schema) + "."
 	}
-	sql += collection + " (doc JSON," +
+	sql += quoteIdentifier(collection) + " (doc JSON," +
 		"_id VARCHAR(32) GENERATED ALWAYS AS (JSON_UNQUOTE(JSON_EXTRACT(doc, '$._id'))) STORED PRIMARY KEY" +
 		") CHARSET utf8mb4 ENGINE=InnoDB;"
 	log.Infof("CreateCollection: %s", collection)
@@ -133,7 +133,7 @@ func (xsql *XSql) createCollection(args []*Mysqlx_Datatypes.Any) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	return xsql.sendExecOk()
+	return nil
 }
 
 func (xsql *XSql) ensureCollection(args []*Mysqlx_Datatypes.Any) error {
@@ -153,7 +153,7 @@ func (xsql *XSql) ensureCollection(args []*Mysqlx_Datatypes.Any) error {
 	if !isColl {
 		return util.ErXInvalidCollection
 	}
-	return xsql.sendExecOk()
+	return nil
 }
 
 func (xsql *XSql) dropCollection(args []*Mysqlx_Datatypes.Any) error {
@@ -188,12 +188,12 @@ func (xsql *XSql) dropCollection(args []*Mysqlx_Datatypes.Any) error {
 	if len(collection) == 0 {
 		return util.ErXBadTable
 	}
-	sql := "DROP TABLE " + schema + "." + collection
+	sql := "DROP TABLE " + quoteIdentifier(schema) + "." + quoteIdentifier(collection)
 	log.Infof("DropCollection: %s", collection)
 	if err := xsql.executeStmtNoResult(sql); err != nil {
 		return errors.Trace(err)
 	}
-	return xsql.sendExecOk()
+	return nil
 }
 
 func (xsql *XSql) createCollectionIndex(args []*Mysqlx_Datatypes.Any) error {
@@ -285,15 +285,15 @@ func (xsql *XSql) enableNotices(args []*Mysqlx_Datatypes.Any) error {
 			// TODO: enable warning here, need a context.
 		}
 	}
-	return xsql.sendExecOk()
+	return nil
 }
 
 func (xsql *XSql) disableNotices(args []*Mysqlx_Datatypes.Any) error {
-	return xsql.sendExecOk()
+	return nil
 }
 
 func (xsql *XSql) listNotices(args []*Mysqlx_Datatypes.Any) error {
-	return xsql.sendExecOk()
+	return nil
 }
 
 func (xsql *XSql) isSchemaSelectedAndExists(schema string) error {
