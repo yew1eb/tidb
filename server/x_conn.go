@@ -46,7 +46,7 @@ type mysqlXClientConn struct {
 	salt         []byte            // random bytes used for authentication.
 	alloc        arena.Allocator   // an memory allocator for reducing memory allocation.
 	lastCmd      string            // latest sql query string, currently used for logging error.
-	ctx          driver.QueryCtx   // an interface to execute sql statements.
+	//ctx          driver.QueryCtx   // an interface to execute sql statements.
 	attrs        map[string]string // attributes parsed from client handshake response, not used for now.
 	killed       bool
 }
@@ -94,8 +94,8 @@ func (xcc *mysqlXClientConn) Close() error {
 	xcc.server.rwlock.Unlock()
 	connGauge.Set(float64(connections))
 	xcc.conn.Close()
-	if xcc.ctx != nil {
-		return xcc.ctx.Close()
+	if xcc.xsession.xsql.ctx != nil {
+		return xcc.xsession.xsql.ctx.Close()
 	}
 	return nil
 }
@@ -192,7 +192,7 @@ func (xcc *mysqlXClientConn) handshake() error {
 			return errors.Trace(err)
 		}
 	}
-	xcc.ctx.SetSessionManager(xcc.server)
+	xcc.xsession.xsql.ctx.SetSessionManager(xcc.server)
 
 	return nil
 }
@@ -257,7 +257,7 @@ func (xcc *mysqlXClientConn) showProcess() util.ProcessInfo {
 func (xcc *mysqlXClientConn) useDB(db string) (err error) {
 	// if input is "use `SELECT`", mysql client just send "SELECT"
 	// so we add `` around db.
-	_, err = xcc.ctx.Execute("use `" + db + "`")
+	_, err = xcc.xsession.xsql.ctx.Execute("use `" + db + "`")
 	if err != nil {
 		return errors.Trace(err)
 	}
