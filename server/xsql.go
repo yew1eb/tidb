@@ -12,6 +12,7 @@ import (
 	"github.com/pingcap/tipb/go-mysqlx"
 	"github.com/pingcap/tipb/go-mysqlx/Resultset"
 	"github.com/pingcap/tipb/go-mysqlx/Sql"
+	"github.com/pingcap/tidb/xprotocol/notice"
 )
 
 type XSql struct {
@@ -47,7 +48,7 @@ func (xsql *XSql) DealSQLStmtExecute(msgType Mysqlx.ClientMessages_Type, payload
 	default:
 		return errors.New("unknown namespace")
 	}
-	return nil
+	return xsql.sendExecOk()
 }
 
 func (xsql *XSql) executeStmtNoResult(sql string) error {
@@ -71,6 +72,9 @@ func (xsql *XSql) executeStmt(sql string) error {
 }
 
 func (xsql *XSql) sendExecOk() error {
+	if err := notice.SendDefault(xsql.pkt); err != nil {
+		return errors.Trace(err)
+	}
 	if err := xsql.pkt.WritePacket(int32(Mysqlx.ServerMessages_SQL_STMT_EXECUTE_OK), nil); err != nil {
 		return errors.Trace(err)
 	}
@@ -144,7 +148,7 @@ func (xsql *XSql) writeResultSet(r driver.ResultSet) error {
 		return errors.Trace(err)
 	}
 	log.Infof("[YUSP] Fetch done sent!")
-	return xsql.pkt.WritePacket(int32(Mysqlx.ServerMessages_SQL_STMT_EXECUTE_OK), []byte{})
+	return nil
 }
 
 func rowToRow(alloc arena.Allocator, columns []*driver.ColumnInfo, row []types.Datum) (*Mysqlx_Resultset.Row, error) {
