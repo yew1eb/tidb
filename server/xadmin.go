@@ -118,9 +118,9 @@ func (xsql *XSql) createCollectionImpl(args []*Mysqlx_Datatypes.Any) error {
 
 	sql := "CREATE TABLE "
 	if len(schema) != 0 {
-		sql += quoteString(schema) + "."
+		sql += schema + "."
 	}
-	sql += quoteString(collection) + " (doc JSON," +
+	sql += collection + " (doc JSON," +
 		"_id VARCHAR(32) GENERATED ALWAYS AS (JSON_UNQUOTE(JSON_EXTRACT(doc, '$._id'))) STORED PRIMARY KEY" +
 		") CHARSET utf8mb4 ENGINE=InnoDB;"
 	log.Infof("CreateCollection: %s", collection)
@@ -188,7 +188,7 @@ func (xsql *XSql) dropCollection(args []*Mysqlx_Datatypes.Any) error {
 	if len(collection) == 0 {
 		return util.ErXBadTable
 	}
-	sql := "DROP TABLE" + quoteString(schema) + "." + quoteString(collection)
+	sql := "DROP TABLE " + schema + "." + collection
 	log.Infof("DropCollection: %s", collection)
 	if err := xsql.executeStmtNoResult(sql); err != nil {
 		return errors.Trace(err)
