@@ -35,6 +35,7 @@ const (
 	CmdBatchRollback
 	CmdScanLock
 	CmdResolveLock
+	CmdBatchLockResolve
 	CmdGC
 	CmdDeleteRange
 
@@ -63,6 +64,7 @@ type Request struct {
 	BatchRollback    *kvrpcpb.BatchRollbackRequest
 	ScanLock         *kvrpcpb.ScanLockRequest
 	ResolveLock      *kvrpcpb.ResolveLockRequest
+	BatchLockResolve *kvrpcpb.BatchLockResolveRequest
 	GC               *kvrpcpb.GCRequest
 	DeleteRange      *kvrpcpb.DeleteRangeRequest
 	RawGet           *kvrpcpb.RawGetRequest
@@ -97,6 +99,8 @@ func (req *Request) GetContext() (*kvrpcpb.Context, error) {
 		c = req.ScanLock.GetContext()
 	case CmdResolveLock:
 		c = req.ResolveLock.GetContext()
+	case CmdBatchLockResolve:
+		c = req.BatchLockResolve.GetContext()
 	case CmdGC:
 		c = req.GC.GetContext()
 	case CmdDeleteRange:
@@ -135,6 +139,7 @@ type Response struct {
 	BatchRollback    *kvrpcpb.BatchRollbackResponse
 	ScanLock         *kvrpcpb.ScanLockResponse
 	ResolveLock      *kvrpcpb.ResolveLockResponse
+	BatchLockResolve *kvrpcpb.BatchLockResolveResponse
 	GC               *kvrpcpb.GCResponse
 	DeleteRange      *kvrpcpb.DeleteRangeResponse
 	RawGet           *kvrpcpb.RawGetResponse
@@ -169,6 +174,8 @@ func SetContext(req *Request, ctx *kvrpcpb.Context) error {
 		req.ScanLock.Context = ctx
 	case CmdResolveLock:
 		req.ResolveLock.Context = ctx
+	case CmdBatchLockResolve:
+		req.BatchLockResolve.Context = ctx
 	case CmdGC:
 		req.GC.Context = ctx
 	case CmdDeleteRange:
@@ -235,6 +242,10 @@ func GenRegionErrorResp(req *Request, e *errorpb.Error) (*Response, error) {
 		}
 	case CmdResolveLock:
 		resp.ResolveLock = &kvrpcpb.ResolveLockResponse{
+			RegionError: e,
+		}
+	case CmdBatchLockResolve:
+		resp.BatchLockResolve = &kvrpcpb.BatchLockResolveResponse{
 			RegionError: e,
 		}
 	case CmdGC:
@@ -305,6 +316,8 @@ func (resp *Response) GetRegionError() (*errorpb.Error, error) {
 		e = resp.ScanLock.GetRegionError()
 	case CmdResolveLock:
 		e = resp.ResolveLock.GetRegionError()
+	case CmdBatchLockResolve:
+		e = resp.BatchLockResolve.GetRegionError()
 	case CmdGC:
 		e = resp.GC.GetRegionError()
 	case CmdDeleteRange:
