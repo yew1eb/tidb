@@ -652,11 +652,7 @@ type arithmeticFunctionClass struct {
 }
 
 func (c *arithmeticFunctionClass) getFunction(ctx context.Context, args []Expression) (builtinFunc, error) {
-	if err := c.verifyArgs(args); err != nil {
-		return nil, errors.Trace(err)
-	}
-	sig := &builtinArithmeticSig{newBaseBuiltinFunc(args, ctx), c.op}
-	return sig.setSelf(sig), nil
+	return &builtinArithmeticSig{newBaseBuiltinFunc(args, ctx), c.op}, errors.Trace(c.verifyArgs(args))
 }
 
 type builtinArithmeticSig struct {
@@ -688,8 +684,18 @@ func (s *builtinArithmeticSig) eval(row []types.Datum) (d types.Datum, err error
 	}
 
 	switch s.op {
+	case opcode.Plus1:
+		return types.ComputePlus(a, b)
+	case opcode.Minus1:
+		return types.ComputeMinus(a, b)
+	case opcode.Mul1:
+		return types.ComputeMul(a, b)
+	case opcode.Div1:
+		return types.ComputeDiv(sc, a, b)
 	case opcode.Mod:
 		return types.ComputeMod(sc, a, b)
+	case opcode.IntDiv1:
+		return types.ComputeIntDiv(sc, a, b)
 	default:
 		return d, errInvalidOperation.Gen("invalid op %v in arithmetic operation", s.op)
 	}

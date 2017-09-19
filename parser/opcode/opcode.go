@@ -27,20 +27,26 @@ const (
 	GE
 	LE
 	EQ
+	EQ1
 	NE
 	LT
 	GT
 	Plus
 	Minus
+	Plus1
+	Minus1
 	And
 	Or
 	Mod
 	Xor
 	Div
 	Mul
+	Div1
+	Mul1
 	Not
 	BitNeg
 	IntDiv
+	IntDiv1
 	LogicXor
 	NullEQ
 	In

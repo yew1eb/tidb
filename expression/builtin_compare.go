@@ -33,6 +33,7 @@ var (
 	_ functionClass = &leastFunctionClass{}
 	_ functionClass = &intervalFunctionClass{}
 	_ functionClass = &compareFunctionClass{}
+	_ functionClass = &compare1FunctionClass{}
 )
 
 var (
@@ -1900,4 +1901,75 @@ func compareJSON(args []Expression, row []types.Datum, ctx context.Context) (int
 	}
 	res, err := json.CompareJSON(arg0, arg1)
 	return int64(res), false, errors.Trace(err)
+}
+
+type compare1FunctionClass struct {
+	baseFunctionClass
+
+	op opcode.Op
+}
+
+func (c *compare1FunctionClass) getFunction(ctx context.Context, args []Expression) (builtinFunc, error) {
+	return &builtinCompareSig{newBaseBuiltinFunc(args, ctx), c.op}, errors.Trace(c.verifyArgs(args))
+}
+
+type builtinCompareSig struct {
+	baseBuiltinFunc
+
+	op opcode.Op
+}
+
+func (s *builtinCompareSig) eval(row []types.Datum) (d types.Datum, err error) {
+	args, err := s.evalArgs(row)
+	if err != nil {
+		return types.Datum{}, errors.Trace(err)
+	}
+	sc := s.ctx.GetSessionVars().StmtCtx
+	var a, b = args[0], args[1]
+	if s.op != opcode.NullEQ {
+		a, b, err = types.CoerceDatum(sc, a, b)
+		if err != nil {
+			return d, errors.Trace(err)
+		}
+	}
+	if a.IsNull() || b.IsNull() {
+		// For <=>, if a and b are both nil, return true.
+		// If a or b is nil, return false.
+		if s.op == opcode.NullEQ {
+			if a.IsNull() && b.IsNull() {
+				d.SetInt64(oneI64)
+			} else {
+				d.SetInt64(zeroI64)
+			}
+		}
+		return
+	}
+
+	n, err := a.CompareDatum(sc, b)
+	if err != nil {
+		return d, errors.Trace(err)
+	}
+	var result bool
+	switch s.op {
+	case opcode.LT:
+		result = n < 0
+	case opcode.LE:
+		result = n <= 0
+	case opcode.EQ1, opcode.NullEQ:
+		result = n == 0
+	case opcode.GT:
+		result = n > 0
+	case opcode.GE:
+		result = n >= 0
+	case opcode.NE:
+		result = n != 0
+	default:
+		return d, errInvalidOperation.Gen("invalid op %v in comparison operation", s.op)
+	}
+	if result {
+		d.SetInt64(oneI64)
+	} else {
+		d.SetInt64(zeroI64)
+	}
+	return
 }
