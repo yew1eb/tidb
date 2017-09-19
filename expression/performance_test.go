@@ -1,13 +1,13 @@
 package expression
 
 import (
+	"github.com/ngaut/log"
 	"github.com/pingcap/tidb/ast"
 	"github.com/pingcap/tidb/model"
 	"github.com/pingcap/tidb/mysql"
 	"github.com/pingcap/tidb/util/charset"
 	"github.com/pingcap/tidb/util/mock"
 	"github.com/pingcap/tidb/util/types"
-	"github.com/ngaut/log"
 
 	"testing"
 )
@@ -140,7 +140,7 @@ func buildOldFunction() Expression {
 func BenchmarkFunctionNew(b *testing.B) {
 	expr := buildNewFunction()
 	b.ResetTimer()
-	for i:=0; i<b.N; i++{
+	for i := 0; i < b.N; i++ {
 		_, err := expr.Eval(row)
 		if err != nil {
 			log.Warning(err)
@@ -152,7 +152,7 @@ func BenchmarkFunctionNew(b *testing.B) {
 func BenchmarkFunctionOld(b *testing.B) {
 	expr := buildOldFunction()
 	b.ResetTimer()
-	for i:=0; i<b.N; i++{
+	for i := 0; i < b.N; i++ {
 		_, err := expr.Eval(row)
 		if err != nil {
 			log.Warning(err)
@@ -160,4 +160,3 @@ func BenchmarkFunctionOld(b *testing.B) {
 		}
 	}
 }
-
