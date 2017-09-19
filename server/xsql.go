@@ -1,3 +1,16 @@
+// Copyright 2017 PingCAP, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package server
 
 import (
@@ -7,12 +20,12 @@ import (
 	"github.com/pingcap/tidb/mysql"
 	"github.com/pingcap/tidb/util/arena"
 	"github.com/pingcap/tidb/util/types"
+	"github.com/pingcap/tidb/xprotocol/notice"
 	"github.com/pingcap/tidb/xprotocol/util"
 	"github.com/pingcap/tidb/xprotocol/xpacketio"
 	"github.com/pingcap/tipb/go-mysqlx"
 	"github.com/pingcap/tipb/go-mysqlx/Resultset"
 	"github.com/pingcap/tipb/go-mysqlx/Sql"
-	"github.com/pingcap/tidb/xprotocol/notice"
 )
 
 type XSql struct {
@@ -161,7 +174,7 @@ func rowToRow(alloc arena.Allocator, columns []*driver.ColumnInfo, row []types.D
 	}
 	var fields [][]byte
 	for i, val := range row {
-		datum, err := driver.DumpDatumToBinary(alloc, columns[i], val, true)
+		datum, err := driver.DumpDatumToBinary(alloc, columns[i], val)
 		if err != nil {
 			return nil, errors.Trace(err)
 		}

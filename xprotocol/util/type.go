@@ -4,8 +4,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/juju/errors"
 	"github.com/pingcap/tidb/mysql"
-	"github.com/pingcap/tipb/go-mysqlx/Resultset"
 	"github.com/pingcap/tidb/util/types"
+	"github.com/pingcap/tipb/go-mysqlx/Resultset"
 )
 
 var unsignedXType = map[byte]Mysqlx_Resultset.ColumnMetaData_FieldType{

@@ -37,18 +37,18 @@ type mysqlXClientConn struct {
 	conn         net.Conn
 	xauth        XAuth
 	xsession     *XSession
-	server       *Server           // a reference of server instance.
-	capability   uint32            // client capability affects the way server handles client request.
-	connectionID uint32            // atomically allocated by a global variable, unique in process scope.
-	collation    uint8             // collation used by client, may be different from the collation used by database.
-	user         string            // user of the client.
-	dbname       string            // default database name.
-	salt         []byte            // random bytes used for authentication.
-	alloc        arena.Allocator   // an memory allocator for reducing memory allocation.
-	lastCmd      string            // latest sql query string, currently used for logging error.
+	server       *Server         // a reference of server instance.
+	capability   uint32          // client capability affects the way server handles client request.
+	connectionID uint32          // atomically allocated by a global variable, unique in process scope.
+	collation    uint8           // collation used by client, may be different from the collation used by database.
+	user         string          // user of the client.
+	dbname       string          // default database name.
+	salt         []byte          // random bytes used for authentication.
+	alloc        arena.Allocator // an memory allocator for reducing memory allocation.
+	lastCmd      string          // latest sql query string, currently used for logging error.
 	//ctx          driver.QueryCtx   // an interface to execute sql statements.
-	attrs        map[string]string // attributes parsed from client handshake response, not used for now.
-	killed       bool
+	attrs  map[string]string // attributes parsed from client handshake response, not used for now.
+	killed bool
 }
 
 func (xcc *mysqlXClientConn) Run() {

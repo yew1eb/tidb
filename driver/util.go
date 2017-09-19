@@ -46,6 +46,7 @@ import (
 	"github.com/pingcap/tidb/util/arena"
 	"github.com/pingcap/tidb/util/hack"
 	"github.com/pingcap/tidb/util/types"
+	"github.com/pingcap/tidb/xprotocol/protocol"
 	"strconv"
 )
 
@@ -124,20 +125,6 @@ func ParseLengthEncodedBytes(b []byte) ([]byte, bool, int, error) {
 	}
 
 	return nil, false, n, io.EOF
-}
-
-func DumpEncodedString(b []byte, alloc arena.Allocator, isXProtocol bool) []byte {
-	if isXProtocol {
-		return Dump0EndEncodedString(b, alloc)
-	}
-	return DumpLengthEncodedString(b, alloc)
-}
-
-func Dump0EndEncodedString(b []byte, alloc arena.Allocator) []byte {
-	data := alloc.Alloc(len(b) + 1)
-	data = append(data, b...)
-	data = append(data, byte(0))
-	return data
 }
 
 func DumpLengthEncodedString(b []byte, alloc arena.Allocator) []byte {
@@ -283,68 +270,58 @@ func DumpRowValuesBinary(alloc arena.Allocator, columns []*ColumnInfo, row []typ
 	}
 	data = append(data, nulls...)
 	for i, val := range row {
-		datum, err := DumpDatumToBinary(alloc, columns[i], val, false)
-		if err != nil {
-			return nil, errors.Trace(err)
+		switch val.Kind() {
+		case types.KindInt64:
+			v := val.GetInt64()
+			switch columns[i].Type {
+			case mysql.TypeTiny:
+				data = append(data, byte(v))
+			case mysql.TypeShort, mysql.TypeYear:
+				data = append(data, DumpUint16(uint16(v))...)
+			case mysql.TypeInt24, mysql.TypeLong:
+				data = append(data, DumpUint32(uint32(v))...)
+			case mysql.TypeLonglong:
+				data = append(data, DumpUint64(uint64(v))...)
+			}
+		case types.KindUint64:
+			v := val.GetUint64()
+			switch columns[i].Type {
+			case mysql.TypeTiny:
+				data = append(data, byte(v))
+			case mysql.TypeShort, mysql.TypeYear:
+				data = append(data, DumpUint16(uint16(v))...)
+			case mysql.TypeInt24, mysql.TypeLong:
+				data = append(data, DumpUint32(uint32(v))...)
+			case mysql.TypeLonglong:
+				data = append(data, DumpUint64(uint64(v))...)
+			}
+		case types.KindFloat32:
+			floatBits := math.Float32bits(val.GetFloat32())
+			data = append(data, DumpUint32(floatBits)...)
+		case types.KindFloat64:
+			floatBits := math.Float64bits(val.GetFloat64())
+			data = append(data, DumpUint64(floatBits)...)
+		case types.KindString, types.KindBytes:
+			data = append(data, DumpLengthEncodedString(val.GetBytes(), alloc)...)
+		case types.KindMysqlDecimal:
+			data = append(data, DumpLengthEncodedString(hack.Slice(val.GetMysqlDecimal().String()), alloc)...)
+		case types.KindMysqlTime:
+			tmp, err := DumpBinaryDateTime(val.GetMysqlTime(), nil)
+			if err != nil {
+				return data, errors.Trace(err)
+			}
+			data = append(data, tmp...)
+		case types.KindMysqlDuration:
+			data = append(data, DumpBinaryTime(val.GetMysqlDuration().Duration)...)
+		case types.KindMysqlSet:
+			data = append(data, DumpLengthEncodedString(hack.Slice(val.GetMysqlSet().String()), alloc)...)
+		case types.KindMysqlEnum:
+			data = append(data, DumpLengthEncodedString(hack.Slice(val.GetMysqlEnum().String()), alloc)...)
+		case types.KindBinaryLiteral, types.KindMysqlBit:
+			data = append(data, DumpLengthEncodedString(hack.Slice(val.GetBinaryLiteral().ToString()), alloc)...)
 		}
-		data = append(data, datum...)
 	}
 	return
-}
-
-func DumpDatumToBinary(alloc arena.Allocator, column *ColumnInfo, val types.Datum, isXProtocol bool) ([]byte, error) {
-	var data []byte
-	switch val.Kind() {
-	case types.KindInt64:
-		v := val.GetInt64()
-		switch column.Type {
-		case mysql.TypeTiny:
-			data = append(data, byte(v))
-		case mysql.TypeShort, mysql.TypeYear:
-			data = append(data, DumpUint16(uint16(v))...)
-		case mysql.TypeInt24, mysql.TypeLong:
-			data = append(data, DumpUint32(uint32(v))...)
-		case mysql.TypeLonglong:
-			data = append(data, DumpUint64(uint64(v))...)
-		}
-	case types.KindUint64:
-		v := val.GetUint64()
-		switch column.Type {
-		case mysql.TypeTiny:
-			data = append(data, byte(v))
-		case mysql.TypeShort, mysql.TypeYear:
-			data = append(data, DumpUint16(uint16(v))...)
-		case mysql.TypeInt24, mysql.TypeLong:
-			data = append(data, DumpUint32(uint32(v))...)
-		case mysql.TypeLonglong:
-			data = append(data, DumpUint64(uint64(v))...)
-		}
-	case types.KindFloat32:
-		floatBits := math.Float32bits(val.GetFloat32())
-		data = append(data, DumpUint32(floatBits)...)
-	case types.KindFloat64:
-		floatBits := math.Float64bits(val.GetFloat64())
-		data = append(data, DumpUint64(floatBits)...)
-	case types.KindString, types.KindBytes:
-		data = append(data, DumpEncodedString(val.GetBytes(), alloc, isXProtocol)...)
-	case types.KindMysqlDecimal:
-		data = append(data, DumpEncodedString(hack.Slice(val.GetMysqlDecimal().String()), alloc, isXProtocol)...)
-	case types.KindMysqlTime:
-		tmp, err := DumpBinaryDateTime(val.GetMysqlTime(), nil)
-		if err != nil {
-			return data, errors.Trace(err)
-		}
-		data = append(data, tmp...)
-	case types.KindMysqlDuration:
-		data = append(data, DumpBinaryTime(val.GetMysqlDuration().Duration)...)
-	case types.KindMysqlSet:
-		data = append(data, DumpEncodedString(hack.Slice(val.GetMysqlSet().String()), alloc, isXProtocol)...)
-	case types.KindMysqlEnum:
-		data = append(data, DumpEncodedString(hack.Slice(val.GetMysqlEnum().String()), alloc, isXProtocol)...)
-	case types.KindMysqlBit:
-		data = append(data, DumpEncodedString(hack.Slice(val.GetMysqlBit().ToString()), alloc, isXProtocol)...)
-	}
-	return data, nil
 }
 
 func DumpTextValue(colInfo *ColumnInfo, value types.Datum) ([]byte, error) {
@@ -384,4 +361,62 @@ func DumpTextValue(colInfo *ColumnInfo, value types.Datum) ([]byte, error) {
 	default:
 		return nil, errInvalidType.Gen("invalid type %v", value.Kind())
 	}
+}
+
+func DumpDatumToBinary(alloc arena.Allocator, column *ColumnInfo, val types.Datum) ([]byte, error) {
+	switch val.Kind() {
+	case types.KindInt64:
+		v := val.GetInt64()
+		switch column.Type {
+		case mysql.TypeTiny, mysql.TypeShort, mysql.TypeYear, mysql.TypeInt24, mysql.TypeLong, mysql.TypeLonglong:
+			data, err := protocol.DumpIntBinary(v)
+			if err != nil {
+				return nil, errors.Trace(err)
+			}
+			return data, nil
+		}
+	case types.KindUint64:
+		v := val.GetUint64()
+		switch column.Type {
+		case mysql.TypeTiny, mysql.TypeShort, mysql.TypeYear, mysql.TypeInt24, mysql.TypeLong, mysql.TypeLonglong:
+			data, err := protocol.DumpUIntBinary(v)
+			if err != nil {
+				return nil, errors.Trace(err)
+			}
+			return data, nil
+		}
+	case types.KindFloat32:
+		floatBits := math.Float32bits(val.GetFloat32())
+		data, err := protocol.DumpUIntBinary(uint64(floatBits))
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+		return data, nil
+	case types.KindFloat64:
+		floatBits := math.Float64bits(val.GetFloat64())
+		data, err := protocol.DumpUIntBinary(uint64(floatBits))
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+		return data, nil
+	case types.KindString, types.KindBytes:
+		return protocol.DumpStringBinary(val.GetBytes(), alloc), nil
+	case types.KindMysqlDecimal:
+		return protocol.DumpStringBinary(hack.Slice(val.GetMysqlDecimal().String()), alloc), nil
+	case types.KindMysqlTime:
+		tmp, err := DumpBinaryDateTime(val.GetMysqlTime(), nil)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+		return tmp, nil
+	case types.KindMysqlDuration:
+		return DumpBinaryTime(val.GetMysqlDuration().Duration), nil
+	case types.KindMysqlSet:
+		return protocol.DumpStringBinary(hack.Slice(val.GetMysqlSet().String()), alloc), nil
+	case types.KindMysqlEnum:
+		return protocol.DumpStringBinary(hack.Slice(val.GetMysqlEnum().String()), alloc), nil
+	case types.KindMysqlBit:
+		return protocol.DumpStringBinary(hack.Slice(val.GetMysqlBit().ToString()), alloc), nil
+	}
+	return nil, errors.New("unknown datum type")
 }
