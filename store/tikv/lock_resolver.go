@@ -17,6 +17,7 @@ import (
 	"container/list"
 	"fmt"
 	"sync"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/juju/errors"
@@ -26,7 +27,7 @@ import (
 	goctx "golang.org/x/net/context"
 )
 
-const resolvedCacheSize = 512
+const resolvedCacheSize = 102400
 
 // LockResolver resolves locks and also caches resolved txn status.
 type LockResolver struct {
@@ -37,6 +38,8 @@ type LockResolver struct {
 		resolved       map[uint64]TxnStatus
 		recentResolved *list.List
 	}
+	cntTxnStatus int
+	costTxnStatus time.Duration
 }
 
 func newLockResolver(store *tikvStore) *LockResolver {
@@ -156,6 +159,8 @@ func (lr *LockResolver) BatchResolveLocks(bo *Backoffer, locks []*Lock, loc Regi
 		return true, nil
 	}
 
+	lr.cntTxnStatus = 0
+	lr.costTxnStatus = 0
 	txnID2Status := make(map[uint64]uint64)
 	for _, l := range expiredLocks {
 		status, err := lr.getTxnStatus(bo, l.TxnID, l.Primary)
@@ -164,6 +169,7 @@ func (lr *LockResolver) BatchResolveLocks(bo *Backoffer, locks []*Lock, loc Regi
 		}
 		txnID2Status[l.TxnID] = uint64(status)
 	}
+	log.Infof("BatchResolveLocks: it takes %v cost to lookup %v txn status.", lr.costTxnStatus, lr.cntTxnStatus)
 
 	var list2TxnStatus []*kvrpcpb.Txn2Status
 	for txnID, status := range txnID2Status {
@@ -178,8 +184,10 @@ func (lr *LockResolver) BatchResolveLocks(bo *Backoffer, locks []*Lock, loc Regi
         BatchLockResolve: &kvrpcpb.BatchLockResolveRequest{
             Txn2StatusS: list2TxnStatus,
         },
-    }
-    resp, err := lr.store.SendReq(bo, req, loc, readTimeoutShort)
+	}
+	startTime := time.Now()
+	resp, err := lr.store.SendReq(bo, req, loc, readTimeoutShort)
+	log.Infof("BatchResolveLocks: it takes %v cost to resolve %v locks in a batch.", time.Since(startTime), len(expiredLocks))
     if err != nil {
         return false, errors.Trace(err)
     }
@@ -266,7 +274,7 @@ func (lr *LockResolver) getTxnStatus(bo *Backoffer, txnID uint64, primary []byte
 	if s, ok := lr.getResolved(txnID); ok {
 		return s, nil
 	}
-
+	lr.cntTxnStatus++
 	lockResolverCounter.WithLabelValues("query_txn_status").Inc()
 
 	var status TxnStatus
@@ -282,10 +290,12 @@ func (lr *LockResolver) getTxnStatus(bo *Backoffer, txnID uint64, primary []byte
 		if err != nil {
 			return status, errors.Trace(err)
 		}
+		tempTime := time.Now()
 		resp, err := lr.store.SendReq(bo, req, loc.Region, readTimeoutShort)
 		if err != nil {
 			return status, errors.Trace(err)
 		}
+		lr.costTxnStatus += time.Since(tempTime)
 		regionErr, err := resp.GetRegionError()
 		if err != nil {
 			return status, errors.Trace(err)

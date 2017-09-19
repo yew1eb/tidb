@@ -264,11 +264,13 @@ func (w *GCWorker) tick(ctx goctx.Context) {
 		return
 	}
 	if isLeader {
+		log.Info("tick:This is leader")
 		err = w.leaderTick(ctx)
 		if err != nil {
 			log.Warnf("[gc worker] leader tick err: %v", err)
 		}
 	} else {
+		log.Info("tick:This is not leader")
 		// Config metrics should always be updated by leader, set them to 0 when current instance is not leader.
 		gcConfigGauge.WithLabelValues(gcRunIntervalKey).Set(0)
 		gcConfigGauge.WithLabelValues(gcLifeTimeKey).Set(0)
@@ -295,17 +297,20 @@ func (w *GCWorker) storeIsBootstrapped() bool {
 // Leader of GC worker checks if it should start a GC job every tick.
 func (w *GCWorker) leaderTick(ctx goctx.Context) error {
 	if w.gcIsRunning {
+		log.Info("leaderTick: another gc is running")
 		return nil
 	}
 
 	ok, safePoint, err := w.prepare()
 	if err != nil || !ok {
 		w.gcIsRunning = false
+		log.Info("leaderTick: prepare error or not ok:", err, ok)
 		return errors.Trace(err)
 	}
 	// When the worker is just started, or an old GC job has just finished,
 	// wait a while before starting a new job.
 	if time.Since(w.lastFinish) < gcWaitTime {
+		log.Infof("time.Since(w.lastFinish) (%v) should be larger than gcWaitTime (%v)", time.Since(w.lastFinish), gcWaitTime)
 		w.gcIsRunning = false
 		return nil
 	}
@@ -364,6 +369,7 @@ func (w *GCWorker) checkGCInterval(now time.Time) (bool, error) {
 	}
 
 	if lastRun != nil && lastRun.Add(*runInterval).After(now) {
+		log.Infof("checkGCInterval: lastRun.Add(*runInterval) (lastRun = (%v), runInterval = (%v)) should be less than time.Now() (%v)", lastRun, *runInterval, time.Now())
 		return false, nil
 	}
 
