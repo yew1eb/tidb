@@ -1,3 +1,16 @@
+// Copyright 2017 PingCAP, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package server
 
 import (
@@ -11,21 +24,23 @@ import (
 )
 
 const (
-	CountDoc string = "COUNT(CASE WHEN (column_name = 'doc' " +
+	countDoc string = "COUNT(CASE WHEN (column_name = 'doc' " +
 		"AND data_type = 'json') THEN 1 ELSE NULL END)"
-	CountID = "COUNT(CASE WHEN (column_name = '_id' " +
+	// countID is not exactly same as MySQL X Protocol,
+	//     TiDB: JSON_UNQUOTE(JSON_EXTRACT(doc,''$._id''))
+	//     MySQL: json_unquote(json_extract(`doc`,''$._id''))'
+	countID = "COUNT(CASE WHEN (column_name = '_id' " +
 		"AND generation_expression = " +
 		"'JSON_UNQUOTE(JSON_EXTRACT(doc,''$._id''))') THEN 1 ELSE NULL END)"
-	CountGen = "COUNT(CASE WHEN (column_name != '_id' " +
+	countGen = "COUNT(CASE WHEN (column_name != '_id' " +
 		"AND generation_expression RLIKE " +
 		"'^(json_unquote[[.(.]])?json_extract[[.(.]]`doc`," +
 		"''[[.$.]]([[...]][^[:space:][...]]+)+''[[.).]]{1,2}$') THEN 1 ELSE NULL " +
 		"END)"
 )
 
-func (xsql *XSql) dispatchAdminCmd(msg Mysqlx_Sql.StmtExecute) error {
+func (xsql *xSQL) dispatchAdminCmd(msg Mysqlx_Sql.StmtExecute) error {
 	stmt := string(msg.GetStmt())
-	log.Infof("[YUSP] %s", stmt)
 	var err error
 	args := msg.GetArgs()
 	switch stmt {
@@ -59,18 +74,18 @@ func (xsql *XSql) dispatchAdminCmd(msg Mysqlx_Sql.StmtExecute) error {
 	return nil
 }
 
-func (xsql *XSql) ping(args []*Mysqlx_Datatypes.Any) error {
+func (xsql *xSQL) ping(args []*Mysqlx_Datatypes.Any) error {
 	if len(args) != 0 {
 		return errors.New("not enough arguments")
 	}
 	return nil
 }
 
-func (xsql *XSql) listClients() error {
+func (xsql *xSQL) listClients() error {
 	return nil
 }
 
-func (xsql *XSql) killClient(args []*Mysqlx_Datatypes.Any) error {
+func (xsql *xSQL) killClient(args []*Mysqlx_Datatypes.Any) error {
 	if len(args) != 1 {
 		return errors.New("not enough arguments")
 	}
@@ -89,7 +104,7 @@ func (xsql *XSql) killClient(args []*Mysqlx_Datatypes.Any) error {
 	return nil
 }
 
-func (xsql *XSql) createCollectionImpl(args []*Mysqlx_Datatypes.Any) error {
+func (xsql *xSQL) createCollectionImpl(args []*Mysqlx_Datatypes.Any) error {
 	if len(args) != 2 {
 		return errors.New("not enough arguments")
 	}
@@ -128,7 +143,7 @@ func (xsql *XSql) createCollectionImpl(args []*Mysqlx_Datatypes.Any) error {
 	return xsql.executeStmtNoResult(sql)
 }
 
-func (xsql *XSql) createCollection(args []*Mysqlx_Datatypes.Any) error {
+func (xsql *xSQL) createCollection(args []*Mysqlx_Datatypes.Any) error {
 	err := xsql.createCollectionImpl(args)
 	if err != nil {
 		return errors.Trace(err)
@@ -136,7 +151,7 @@ func (xsql *XSql) createCollection(args []*Mysqlx_Datatypes.Any) error {
 	return nil
 }
 
-func (xsql *XSql) ensureCollection(args []*Mysqlx_Datatypes.Any) error {
+func (xsql *xSQL) ensureCollection(args []*Mysqlx_Datatypes.Any) error {
 	err := xsql.createCollectionImpl(args)
 	if err != nil {
 		if !terror.ErrorEqual(err, util.ErrTableExists) {
@@ -156,7 +171,7 @@ func (xsql *XSql) ensureCollection(args []*Mysqlx_Datatypes.Any) error {
 	return nil
 }
 
-func (xsql *XSql) dropCollection(args []*Mysqlx_Datatypes.Any) error {
+func (xsql *xSQL) dropCollection(args []*Mysqlx_Datatypes.Any) error {
 	if len(args) != 2 {
 		return errors.New("not enough arguments")
 	}
@@ -196,15 +211,15 @@ func (xsql *XSql) dropCollection(args []*Mysqlx_Datatypes.Any) error {
 	return nil
 }
 
-func (xsql *XSql) createCollectionIndex(args []*Mysqlx_Datatypes.Any) error {
+func (xsql *xSQL) createCollectionIndex(args []*Mysqlx_Datatypes.Any) error {
 	return util.ErrJSONUsedAsKey
 }
 
-func (xsql *XSql) dropCollectionIndex(args []*Mysqlx_Datatypes.Any) error {
+func (xsql *xSQL) dropCollectionIndex(args []*Mysqlx_Datatypes.Any) error {
 	return util.ErrJSONUsedAsKey
 }
 
-func (xsql *XSql) listObjects(args []*Mysqlx_Datatypes.Any) error {
+func (xsql *xSQL) listObjects(args []*Mysqlx_Datatypes.Any) error {
 	if len(args) != 2 {
 		return errors.New("not enough arguments")
 	}
@@ -237,13 +252,13 @@ func (xsql *XSql) listObjects(args []*Mysqlx_Datatypes.Any) error {
 		"SELECT BINARY T.table_name AS name, " +
 			"IF(ANY_VALUE(T.table_type) LIKE '%VIEW', " +
 			"IF(COUNT(*)=1 AND " +
-			CountDoc +
+			countDoc +
 			"=1, 'COLLECTION_VIEW', 'VIEW'), IF(COUNT(*)-2 = " +
-			CountGen +
+			countGen +
 			" AND " +
-			CountDoc +
+			countDoc +
 			"=1 AND " +
-			CountID +
+			countID +
 			"=1, 'COLLECTION', 'TABLE')) AS type " +
 			"FROM information_schema.tables AS T " +
 			"LEFT JOIN information_schema.columns AS C ON (" +
@@ -262,14 +277,13 @@ func (xsql *XSql) listObjects(args []*Mysqlx_Datatypes.Any) error {
 	}
 
 	sql += " GROUP BY name ORDER BY name"
-	log.Infof("[YUSP] %s", sql)
 	if err := xsql.executeStmt(sql); err != nil {
 		return errors.Trace(err)
 	}
 	return nil
 }
 
-func (xsql *XSql) enableNotices(args []*Mysqlx_Datatypes.Any) error {
+func (xsql *xSQL) enableNotices(args []*Mysqlx_Datatypes.Any) error {
 	enableWarning := false
 	for _, v := range args {
 		if err := isString(v); err != nil {
@@ -288,15 +302,15 @@ func (xsql *XSql) enableNotices(args []*Mysqlx_Datatypes.Any) error {
 	return nil
 }
 
-func (xsql *XSql) disableNotices(args []*Mysqlx_Datatypes.Any) error {
+func (xsql *xSQL) disableNotices(args []*Mysqlx_Datatypes.Any) error {
 	return nil
 }
 
-func (xsql *XSql) listNotices(args []*Mysqlx_Datatypes.Any) error {
+func (xsql *xSQL) listNotices(args []*Mysqlx_Datatypes.Any) error {
 	return nil
 }
 
-func (xsql *XSql) isSchemaSelectedAndExists(schema string) error {
+func (xsql *xSQL) isSchemaSelectedAndExists(schema string) error {
 	sql := "SHOW TABLES"
 	if len(schema) != 0 {
 		sql = sql + " FROM " + quoteIdentifier(schema)
@@ -315,8 +329,8 @@ func quoteString(str string) string {
 	return "'" + str + "'"
 }
 
-func (xsql *XSql) isCollection(schema string, collection string) (bool, error) {
-	sql := "SELECT COUNT(*) AS cnt," + CountDoc + " As doc," + CountID + " AS id," + CountGen +
+func (xsql *xSQL) isCollection(schema string, collection string) (bool, error) {
+	sql := "SELECT COUNT(*) AS cnt," + countDoc + " As doc," + countID + " AS id," + countGen +
 		" AS gen " + "FROM information_schema.columns WHERE table_name = " +
 		quoteString(collection) + " AND table_schema = "
 	if len(schema) == 0 {
@@ -324,7 +338,6 @@ func (xsql *XSql) isCollection(schema string, collection string) (bool, error) {
 	} else {
 		sql += quoteString(schema)
 	}
-	log.Infof("[YUSP] sql: %s", sql)
 	rs, err := xsql.ctx.Execute(sql)
 	if err != nil {
 		return false, errors.Trace(err)

@@ -18,11 +18,11 @@ import (
 	"strconv"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/golang/protobuf/proto"
 	"github.com/pingcap/tidb/util/arena"
 )
 
+// DumpIntBinary dumps int to binary.
 func DumpIntBinary(value int64) ([]byte, error) {
 	p := proto.NewBuffer([]byte{})
 	if err := p.EncodeZigzag64(uint64(value)); err != nil {
@@ -31,6 +31,7 @@ func DumpIntBinary(value int64) ([]byte, error) {
 	return p.Bytes(), nil
 }
 
+// DumpUIntBinary dumps uint to binary.
 func DumpUIntBinary(value uint64) ([]byte, error) {
 	p := proto.NewBuffer([]byte{})
 	if err := p.EncodeVarint(uint64(value)); err != nil {
@@ -39,6 +40,7 @@ func DumpUIntBinary(value uint64) ([]byte, error) {
 	return p.Bytes(), nil
 }
 
+// DumpStringBinary dumps string to binary.
 func DumpStringBinary(b []byte, alloc arena.Allocator) []byte {
 	data := alloc.Alloc(len(b) + 1)
 	data = append(data, b...)
@@ -46,19 +48,26 @@ func DumpStringBinary(b []byte, alloc arena.Allocator) []byte {
 	return data
 }
 
+// StrToXDecimal converts string to MySQL X Decimal.
 func StrToXDecimal(str string) ([]byte, error) {
 	if len(str) == 0 {
 		return nil, nil
 	}
+
+	// First byte stores the scale (number of digits after '.')
+	// then all digits in BCD
 	scale := 0
 	dotPos := strings.Index(str, ".")
 	slices := strings.Split(str, ".")
+
 	if len(slices) > 2 {
 		return nil, errors.New("invalid decimal")
 	}
+
 	if dotPos != -1 {
 		scale = len(str) - dotPos - 1
 	}
+
 	dec := []byte{byte(scale)}
 	sign := 0xc
 	if strings.HasPrefix(slices[0], "-") || strings.HasPrefix(slices[0], "+") {
@@ -76,7 +85,6 @@ func StrToXDecimal(str string) ([]byte, error) {
 		joined += v
 	}
 
-	log.Infof("[YUSP] joined: %s", joined)
 	// Append two char into one byte.
 	// If joined[i+1] is the last char, stop the loop.
 	// If joined[i+2] is the last char, stop the loop in the next loop after append sign.
@@ -93,6 +101,5 @@ func StrToXDecimal(str string) ([]byte, error) {
 	if sign != 0 {
 		dec = append(dec, byte(sign<<4))
 	}
-	log.Infof("[YUSP] dec: %#o", dec)
 	return dec, nil
 }

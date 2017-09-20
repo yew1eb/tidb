@@ -1,7 +1,6 @@
 package util
 
 import (
-	log "github.com/Sirupsen/logrus"
 	"github.com/juju/errors"
 	"github.com/pingcap/tidb/mysql"
 	"github.com/pingcap/tidb/util/types"
@@ -81,7 +80,8 @@ var commonXType = map[byte]Mysqlx_Resultset.ColumnMetaData_FieldType{
 	mysql.TypeVarString:  Mysqlx_Resultset.ColumnMetaData_BYTES,
 }
 
-func Mysql2XType(tp byte, unsigned bool) (*Mysqlx_Resultset.ColumnMetaData_FieldType, error) {
+// MysqlType2XType convert MySQL type to X Protocol type.
+func MysqlType2XType(tp byte, unsigned bool) (*Mysqlx_Resultset.ColumnMetaData_FieldType, error) {
 	if unsigned {
 		if colTp, ok := unsignedXType[tp]; ok {
 			return &colTp, nil
@@ -91,6 +91,5 @@ func Mysql2XType(tp byte, unsigned bool) (*Mysqlx_Resultset.ColumnMetaData_Field
 			return &colTp, nil
 		}
 	}
-	log.Infof("[YUSP] %v", unsigned)
 	return nil, errors.Errorf("unknown column type %s", types.TypeStr(tp))
 }

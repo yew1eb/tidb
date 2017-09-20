@@ -39,12 +39,12 @@ import (
 	"encoding/binary"
 	"io"
 	"net"
+	"strconv"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/juju/errors"
 	"github.com/pingcap/tidb/mysql"
 	"github.com/pingcap/tidb/sessionctx/variable"
-	"strconv"
+	"github.com/pingcap/tipb/go-mysqlx"
 )
 
 const (
@@ -58,6 +58,7 @@ type XPacketIO struct {
 	wb *bufio.Writer
 }
 
+// NewXPacketIO is the init function for XPacketIO
 func NewXPacketIO(conn net.Conn) *XPacketIO {
 	p := &XPacketIO{
 		rb: bufio.NewReaderSize(conn, defaultXReaderSize),
@@ -75,23 +76,23 @@ func NewXPacketIO(conn net.Conn) *XPacketIO {
 // -------------------------------------------------------------------------------
 // message needs to be decoded by protobuf.
 // See: https://dev.mysql.com/doc/internals/en/x-protocol-messages-messages.html
-// readPacket reads a full size request in x protocol.
-func (p *XPacketIO) ReadPacket() (int32, []byte, error) {
+// ReadPacket reads a full size request in X Protocol.
+func (p *XPacketIO) ReadPacket() (Mysqlx.ClientMessages_Type, []byte, error) {
 	payload, err := p.readPacket()
 	if err != nil {
 		return 0, nil, err
 	}
-	return int32(payload[0]), payload[1:], nil
+	return Mysqlx.ClientMessages_Type(payload[0]), payload[1:], nil
 }
 
-func (p *XPacketIO) WritePacket(msgType int32, message []byte) error {
+// WritePacket is the packet writer for XPacketIO.
+func (p *XPacketIO) WritePacket(msgType Mysqlx.ServerMessages_Type, message []byte) error {
 	return p.writePacket(append([]byte{byte(msgType)}, message...))
 }
 
 func (p *XPacketIO) readPacket() ([]byte, error) {
 	header := make([]byte, 4)
 
-	log.Infof("[YUSP] begin read")
 	if _, err := io.ReadFull(p.rb, header); err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -129,6 +130,7 @@ func (p *XPacketIO) writePacket(data []byte) error {
 	}
 }
 
+// Flush flushes bufferIO.
 func (p *XPacketIO) Flush() error {
 	return p.wb.Flush()
 }

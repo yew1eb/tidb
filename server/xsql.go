@@ -14,7 +14,6 @@
 package server
 
 import (
-	log "github.com/Sirupsen/logrus"
 	"github.com/juju/errors"
 	"github.com/pingcap/tidb/driver"
 	"github.com/pingcap/tidb/xprotocol/notice"
@@ -23,21 +22,23 @@ import (
 	"github.com/pingcap/tipb/go-mysqlx/Sql"
 )
 
-type XSql struct {
+type xSQL struct {
 	xcc *mysqlXClientConn
 	ctx driver.QueryCtx
 	pkt *xpacketio.XPacketIO
 }
 
-func CreateContext(xcc *mysqlXClientConn, ctx driver.QueryCtx, pkt *xpacketio.XPacketIO) *XSql {
-	return &XSql{
+// CreateContext is the init function for sql context.
+func CreateContext(xcc *mysqlXClientConn, ctx driver.QueryCtx, pkt *xpacketio.XPacketIO) *xSQL {
+	return &xSQL{
 		xcc: xcc,
 		ctx: ctx,
 		pkt: pkt,
 	}
 }
 
-func (xsql *XSql) DealSQLStmtExecute(msgType Mysqlx.ClientMessages_Type, payload []byte) error {
+// DealSQLStmtExecute deals Mysqlx.ClientMessages_SQL_STMT_EXECUTE message.
+func (xsql *xSQL) DealSQLStmtExecute(payload []byte) error {
 	var msg Mysqlx_Sql.StmtExecute
 	if err := msg.Unmarshal(payload); err != nil {
 		return err
@@ -51,7 +52,6 @@ func (xsql *XSql) DealSQLStmtExecute(msgType Mysqlx.ClientMessages_Type, payload
 		}
 	case "sql", "":
 		sql := string(msg.GetStmt())
-		log.Infof("[YUSP] %s", sql)
 		if err := xsql.executeStmt(sql); err != nil {
 			return errors.Trace(err)
 		}
@@ -61,14 +61,14 @@ func (xsql *XSql) DealSQLStmtExecute(msgType Mysqlx.ClientMessages_Type, payload
 	return xsql.sendExecOk()
 }
 
-func (xsql *XSql) executeStmtNoResult(sql string) error {
+func (xsql *xSQL) executeStmtNoResult(sql string) error {
 	if _, err := xsql.ctx.Execute(sql); err != nil {
 		return errors.Trace(err)
 	}
 	return nil
 }
 
-func (xsql *XSql) executeStmt(sql string) error {
+func (xsql *xSQL) executeStmt(sql string) error {
 	rs, err := xsql.ctx.Execute(sql)
 	if err != nil {
 		return err
@@ -81,13 +81,14 @@ func (xsql *XSql) executeStmt(sql string) error {
 	return nil
 }
 
-func (xsql *XSql) sendExecOk() error {
+func (xsql *xSQL) sendExecOk() error {
+	// TODO: return more notice here, for example: rows affected.
 	if xsql.ctx.LastInsertID() > 0 {
 		if err := notice.SendLastInsertID(xsql.pkt, xsql.ctx.LastInsertID()); err != nil {
 			return errors.Trace(err)
 		}
 	}
-	if err := xsql.pkt.WritePacket(int32(Mysqlx.ServerMessages_SQL_STMT_EXECUTE_OK), nil); err != nil {
+	if err := xsql.pkt.WritePacket(Mysqlx.ServerMessages_SQL_STMT_EXECUTE_OK, nil); err != nil {
 		return errors.Trace(err)
 	}
 	return nil

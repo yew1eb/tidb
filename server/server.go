@@ -243,9 +243,7 @@ func (s *Server) Run() error {
 		s.startStatusHTTP()
 	}
 	for {
-		log.Infof("[YUSP] ready to accept connection")
 		conn, err := s.listener.Accept()
-		log.Infof("[YUSP] new connection")
 		if err != nil {
 			if opErr, ok := err.(*net.OpError); ok {
 				if opErr.Err.Error() == "use of closed network connection" {
@@ -259,7 +257,6 @@ func (s *Server) Run() error {
 			conn.Close()
 			break
 		}
-		log.Infof("[YUSP] ready connection")
 		go s.onConn(conn)
 	}
 	s.listener.Close()
@@ -297,7 +294,6 @@ func (s *Server) onConn(c net.Conn) {
 		log.Infof("[%d] close connection", conn.id())
 	}()
 
-	log.Infof("[YUSP] before handshake")
 	if err := conn.handshake(); err != nil {
 		// Some keep alive services will send request to TiDB and disconnect immediately.
 		// So we use info log level.

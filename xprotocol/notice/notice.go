@@ -1,7 +1,6 @@
 package notice
 
 import (
-	log "github.com/Sirupsen/logrus"
 	"github.com/juju/errors"
 	"github.com/pingcap/tidb/driver"
 	"github.com/pingcap/tidb/mysql"
@@ -46,7 +45,7 @@ func (n *Notice) SendNotice(scope Mysqlx_Notice.Frame_Scope, forceFlush bool) er
 		return err
 	}
 
-	n.pkt.WritePacket(int32(Mysqlx.ServerMessages_NOTICE), data)
+	n.pkt.WritePacket(Mysqlx.ServerMessages_NOTICE, data)
 	return nil
 }
 
@@ -137,7 +136,7 @@ func SendInitError(pkt *xpacketio.XPacketIO, code *uint16, msg *string) error {
 		return err
 	}
 
-	return pkt.WritePacket(int32(Mysqlx.ServerMessages_ERROR), data)
+	return pkt.WritePacket(Mysqlx.ServerMessages_ERROR, data)
 }
 
 func WriteResultSet(r driver.ResultSet, pkt *xpacketio.XPacketIO, alloc arena.Allocator) error {
@@ -153,7 +152,7 @@ func WriteResultSet(r driver.ResultSet, pkt *xpacketio.XPacketIO, alloc arena.Al
 
 	// Write column information.
 	for _, c := range cols {
-		tp, err := util.Mysql2XType(c.Type, mysql.HasUnsignedFlag(uint(c.Flag)))
+		tp, err := util.MysqlType2XType(c.Type, mysql.HasUnsignedFlag(uint(c.Flag)))
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -171,7 +170,7 @@ func WriteResultSet(r driver.ResultSet, pkt *xpacketio.XPacketIO, alloc arena.Al
 		if err != nil {
 			return errors.Trace(err)
 		}
-		if err := pkt.WritePacket(int32(Mysqlx.ServerMessages_RESULTSET_COLUMN_META_DATA), data); err != nil {
+		if err := pkt.WritePacket(Mysqlx.ServerMessages_RESULTSET_COLUMN_META_DATA, data); err != nil {
 			return errors.Trace(err)
 		}
 	}
@@ -197,16 +196,15 @@ func WriteResultSet(r driver.ResultSet, pkt *xpacketio.XPacketIO, alloc arena.Al
 			return errors.Trace(err)
 		}
 
-		if err := pkt.WritePacket(int32(Mysqlx.ServerMessages_RESULTSET_ROW), data); err != nil {
+		if err := pkt.WritePacket(Mysqlx.ServerMessages_RESULTSET_ROW, data); err != nil {
 			return errors.Trace(err)
 		}
 		row, err = r.Next()
 	}
 
-	if err := pkt.WritePacket(int32(Mysqlx.ServerMessages_RESULTSET_FETCH_DONE), []byte{}); err != nil {
+	if err := pkt.WritePacket(Mysqlx.ServerMessages_RESULTSET_FETCH_DONE, []byte{}); err != nil {
 		return errors.Trace(err)
 	}
-	log.Infof("[YUSP] Fetch done sent!")
 	return nil
 }
 

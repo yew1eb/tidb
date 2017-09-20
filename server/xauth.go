@@ -153,7 +153,7 @@ func (xa *XAuth) SendAuthOk(value *string) error {
 		return err
 	}
 
-	return xa.xcc.pkt.WritePacket(int32(Mysqlx.ServerMessages_SESS_AUTHENTICATE_OK), data)
+	return xa.xcc.pkt.WritePacket(Mysqlx.ServerMessages_SESS_AUTHENTICATE_OK, data)
 }
 
 func (xa *XAuth) SendAuthContinue(value *string) error {
@@ -161,11 +161,10 @@ func (xa *XAuth) SendAuthContinue(value *string) error {
 		AuthData: []byte(*value),
 	}
 
-	log.Infof("[YUSP] %s", msg.String())
 	data, err := msg.Marshal()
 	if err != nil {
 		return err
 	}
 
-	return xa.xcc.pkt.WritePacket(int32(Mysqlx.ServerMessages_SESS_AUTHENTICATE_CONTINUE), data)
+	return xa.xcc.pkt.WritePacket(Mysqlx.ServerMessages_SESS_AUTHENTICATE_CONTINUE, data)
 }
