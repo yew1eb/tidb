@@ -14,17 +14,14 @@
 package protocol
 
 import (
+	"errors"
+	"strconv"
+	"strings"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/golang/protobuf/proto"
 	"github.com/pingcap/tidb/util/arena"
-	"strings"
-	"errors"
-	"strconv"
 )
-
-func DumpNullBinary() []byte {
-	return nil
-}
 
 func DumpIntBinary(value int64) ([]byte, error) {
 	p := proto.NewBuffer([]byte{})
@@ -40,38 +37,6 @@ func DumpUIntBinary(value uint64) ([]byte, error) {
 		return nil, err
 	}
 	return p.Bytes(), nil
-}
-
-func DumpDecimalBinary() []byte {
-	return nil
-}
-
-func DumpDoubleBinary() []byte {
-	return nil
-}
-
-func DumpFloatBinary() []byte {
-	return nil
-}
-
-func DumpDateBinary() []byte {
-	return nil
-}
-
-func DumpTimeBinary() []byte {
-	return nil
-}
-
-func DumpDatetimeBinary() []byte {
-	return nil
-}
-
-func DumpSetBinary() []byte {
-	return nil
-}
-
-func DumpBitBinary() []byte {
-	return nil
 }
 
 func DumpStringBinary(b []byte, alloc arena.Allocator) []byte {
@@ -112,21 +77,21 @@ func StrToXDecimal(str string) ([]byte, error) {
 	}
 
 	log.Infof("[YUSP] joined: %s", joined)
+	// Append two char into one byte.
+	// If joined[i+1] is the last char, stop the loop.
+	// If joined[i+2] is the last char, stop the loop in the next loop after append sign.
 	for i := 0; i < len(joined); i += 2 {
-		if i == len(joined) - 1 {
+		if i == len(joined)-1 {
 			// If it is the last char of joined, append like the following.
-			dec = append(dec, byte((int(joined[i]) - int('0')) << 4 | sign))
+			dec = append(dec, byte((int(joined[i])-int('0'))<<4|sign))
 			sign = 0
 			break
 		}
-		// Append two char into one byte.
-		// If joined[i+1] is the last char, stop the loop.
-		// If joined[i+2] is the last char, stop the loop after append sign.
-		dec = append(dec, byte((int(joined[i]) - int('0')) << 4 | (int(joined[i+1]) - int('0'))))
+		dec = append(dec, byte((int(joined[i])-int('0'))<<4|(int(joined[i+1])-int('0'))))
 	}
 
 	if sign != 0 {
-		dec = append(dec, byte(sign << 4))
+		dec = append(dec, byte(sign<<4))
 	}
 	log.Infof("[YUSP] dec: %#o", dec)
 	return dec, nil

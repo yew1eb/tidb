@@ -402,11 +402,11 @@ func DumpDatumToBinary(alloc arena.Allocator, column *ColumnInfo, val types.Datu
 	case types.KindString, types.KindBytes:
 		return protocol.DumpStringBinary(val.GetBytes(), alloc), nil
 	case types.KindMysqlDecimal:
-		xdec, err := protocol.StrToXDecimal(val.GetMysqlDecimal().String())
+		data, err := protocol.StrToXDecimal(val.GetMysqlDecimal().String())
 		if err != nil {
 			return nil, errors.Trace(err)
 		}
-		return xdec, nil
+		return data, nil
 	case types.KindMysqlTime:
 		tmp, err := DumpBinaryDateTime(val.GetMysqlTime(), nil)
 		if err != nil {

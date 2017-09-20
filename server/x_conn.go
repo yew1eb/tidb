@@ -25,10 +25,10 @@ import (
 	"github.com/pingcap/tidb/util"
 	"github.com/pingcap/tidb/util/arena"
 	"github.com/pingcap/tidb/xprotocol/capability"
+	"github.com/pingcap/tidb/xprotocol/crud"
 	xutil "github.com/pingcap/tidb/xprotocol/util"
 	"github.com/pingcap/tidb/xprotocol/xpacketio"
 	"github.com/pingcap/tipb/go-mysqlx"
-	"github.com/pingcap/tidb/xprotocol/crud"
 )
 
 // mysqlXClientConn represents a connection between server and client,
@@ -294,9 +294,9 @@ func (xs *XSession) HandleMessage(msgType Mysqlx.ClientMessages_Type, payload []
 		}
 	case Mysqlx.ClientMessages_CRUD_FIND, Mysqlx.ClientMessages_CRUD_INSERT, Mysqlx.ClientMessages_CRUD_UPDATE, Mysqlx.ClientMessages_CRUD_DELETE,
 		Mysqlx.ClientMessages_CRUD_CREATE_VIEW, Mysqlx.ClientMessages_CRUD_MODIFY_VIEW, Mysqlx.ClientMessages_CRUD_DROP_VIEW:
-			if err := xs.crud.DealCrudStmtExecute(msgType, payload); err != nil {
-				return err
-			}
+		if err := xs.crud.DealCrudStmtExecute(msgType, payload); err != nil {
+			return err
+		}
 	case Mysqlx.ClientMessages_EXPECT_OPEN, Mysqlx.ClientMessages_EXPECT_CLOSE:
 	default:
 		return errors.Errorf("unknown message type %d", msgType)

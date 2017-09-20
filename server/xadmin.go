@@ -15,7 +15,7 @@ const (
 		"AND data_type = 'json') THEN 1 ELSE NULL END)"
 	CountID = "COUNT(CASE WHEN (column_name = '_id' " +
 		"AND generation_expression = " +
-		"'json_unquote(json_extract(`doc`,''$._id''))') THEN 1 ELSE NULL END)"
+		"'JSON_UNQUOTE(JSON_EXTRACT(doc,''$._id''))') THEN 1 ELSE NULL END)"
 	CountGen = "COUNT(CASE WHEN (column_name != '_id' " +
 		"AND generation_expression RLIKE " +
 		"'^(json_unquote[[.(.]])?json_extract[[.(.]]`doc`," +

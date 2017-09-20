@@ -1,11 +1,11 @@
 package crud
 
 import (
-	"github.com/pingcap/tipb/go-mysqlx"
-	"github.com/pingcap/tidb/xprotocol/xpacketio"
 	"github.com/pingcap/tidb/driver"
-	"github.com/pingcap/tidb/xprotocol/notice"
 	"github.com/pingcap/tidb/util/arena"
+	"github.com/pingcap/tidb/xprotocol/notice"
+	"github.com/pingcap/tidb/xprotocol/xpacketio"
+	"github.com/pingcap/tipb/go-mysqlx"
 )
 
 type builder interface {
@@ -27,8 +27,8 @@ func (crud *XCrud) createCrudBuilder(msgType Mysqlx.ClientMessages_Type) builder
 }
 
 type XCrud struct {
-	ctx driver.QueryCtx
-	pkt *xpacketio.XPacketIO
+	ctx   driver.QueryCtx
+	pkt   *xpacketio.XPacketIO
 	alloc arena.Allocator
 }
 

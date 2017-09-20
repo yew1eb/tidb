@@ -2,17 +2,17 @@ package notice
 
 import (
 	log "github.com/Sirupsen/logrus"
+	"github.com/juju/errors"
+	"github.com/pingcap/tidb/driver"
 	"github.com/pingcap/tidb/mysql"
+	"github.com/pingcap/tidb/util/arena"
+	"github.com/pingcap/tidb/util/types"
+	"github.com/pingcap/tidb/xprotocol/util"
 	"github.com/pingcap/tidb/xprotocol/xpacketio"
 	"github.com/pingcap/tipb/go-mysqlx"
 	"github.com/pingcap/tipb/go-mysqlx/Datatypes"
 	"github.com/pingcap/tipb/go-mysqlx/Notice"
-	"github.com/pingcap/tidb/util/arena"
-	"github.com/pingcap/tidb/util/types"
-	"github.com/pingcap/tidb/xprotocol/util"
 	"github.com/pingcap/tipb/go-mysqlx/Resultset"
-	"github.com/pingcap/tidb/driver"
-	"github.com/juju/errors"
 )
 
 type Notice struct {
@@ -139,7 +139,6 @@ func SendInitError(pkt *xpacketio.XPacketIO, code *uint16, msg *string) error {
 
 	return pkt.WritePacket(int32(Mysqlx.ServerMessages_ERROR), data)
 }
-
 
 func WriteResultSet(r driver.ResultSet, pkt *xpacketio.XPacketIO, alloc arena.Allocator) error {
 	defer r.Close()
