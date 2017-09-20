@@ -17,7 +17,7 @@ expr2: cast2 = cast3
 - BenchmarkFunctionNew-4           1000000              1574 ns/op              96 B/op          5 allocs/op
 - BenchmarkFunctionOld-4            200000              5814 ns/op             848 B/op         24 allocs/op
 
-表达式树两个子树深度均为 6 层, 每次运算均有类型转化, 运算速度**提升**约 3 倍, 内存分配次数及内存分配总量均有所减少, 内存分配次数**减少 ** 79%, 内存分配总量**下降** 89%
+表达式树两个子树深度均为 6 层, 每次运算均有类型转化, 运算速度**提升**约 3 倍, 内存分配次数及内存分配总量均有所减少, 内存分配次数**减少** 79%, 内存分配总量**下降** 89%
 
 [case2: time func](./performance2_test.go)
 
@@ -38,10 +38,10 @@ expr3: TIMEDIFF(cast1, cast2)
 [case3: string func](./performance3_test.go)
 
 ``` sql
-// expr:  hex(left(string, int))
-// expr1: insert(expr, int, int, string)
-// expr2: lpad(expr1, int, string)
-// expr3: instr(expr2, string)
+expr:  hex(left(string, int))
+expr1: insert(expr, int, int, string)
+expr2: lpad(expr1, int, string)
+expr3: instr(expr2, string)
 ```
 
 - BenchmarkStringFunctionNew-4     3000000               467 ns/op              16 B/op          2 allocs/op
