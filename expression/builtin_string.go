@@ -2916,3 +2916,248 @@ type loadFileFunctionClass struct {
 func (c *loadFileFunctionClass) getFunction(ctx context.Context, args []Expression) (builtinFunc, error) {
 	return nil, errFunctionNotExists.GenByArgs("load_file")
 }
+
+type leftFunctionClass1 struct {
+	baseFunctionClass
+}
+
+func (c *leftFunctionClass1) getFunction(ctx context.Context, args []Expression) (builtinFunc, error) {
+	return &builtinLeftSig1{newBaseBuiltinFunc(args, ctx)}, errors.Trace(c.verifyArgs(args))
+}
+
+type builtinLeftSig1 struct {
+	baseBuiltinFunc
+}
+
+// See https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_left
+func (b *builtinLeftSig1) eval(row []types.Datum) (d types.Datum, err error) {
+	args, err := b.evalArgs(row)
+	if err != nil {
+		return types.Datum{}, errors.Trace(err)
+	}
+	str, err := args[0].ToString()
+	if err != nil {
+		return d, errors.Trace(err)
+	}
+	length, err := args[1].ToInt64(b.ctx.GetSessionVars().StmtCtx)
+	if err != nil {
+		return d, errors.Trace(err)
+	}
+	l := int(length)
+	if l < 0 {
+		l = 0
+	} else if l > len(str) {
+		l = len(str)
+	}
+	d.SetString(str[:l])
+	return d, nil
+}
+
+type lpadFunctionClass1 struct {
+	baseFunctionClass
+}
+
+func (c *lpadFunctionClass1) getFunction(ctx context.Context, args []Expression) (builtinFunc, error) {
+	return &builtinLpadSig1{newBaseBuiltinFunc(args, ctx)}, errors.Trace(c.verifyArgs(args))
+}
+
+type builtinLpadSig1 struct {
+	baseBuiltinFunc
+}
+
+// See https://dev.mysql.com/doc/refman/5.6/en/string-functions.html#function_lpad
+func (b *builtinLpadSig1) eval(row []types.Datum) (d types.Datum, err error) {
+	args, err := b.evalArgs(row)
+	if err != nil {
+		return types.Datum{}, errors.Trace(err)
+	}
+	// LPAD(str,len,padstr)
+	// args[0] string, args[1] int, args[2] string
+	str, err := args[0].ToString()
+	if err != nil {
+		return d, errors.Trace(err)
+	}
+	length, err := args[1].ToInt64(b.ctx.GetSessionVars().StmtCtx)
+	if err != nil {
+		return d, errors.Trace(err)
+	}
+	l := int(length)
+
+	padStr, err := args[2].ToString()
+	if err != nil {
+		return d, errors.Trace(err)
+	}
+
+	if l < 0 || (len(str) < l && padStr == "") {
+		return d, nil
+	}
+
+	tailLen := l - len(str)
+	if tailLen > 0 {
+		repeatCount := tailLen/len(padStr) + 1
+		str = strings.Repeat(padStr, repeatCount)[:tailLen] + str
+	}
+	d.SetString(str[:l])
+
+	return d, nil
+}
+
+type hexFunctionClass1 struct {
+	baseFunctionClass
+}
+
+func (c *hexFunctionClass1) getFunction(ctx context.Context, args []Expression) (builtinFunc, error) {
+	return &builtinHexSig1{newBaseBuiltinFunc(args, ctx)}, errors.Trace(c.verifyArgs(args))
+}
+
+type builtinHexSig1 struct {
+	baseBuiltinFunc
+}
+
+// See http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_hex
+func (b *builtinHexSig1) eval(row []types.Datum) (d types.Datum, err error) {
+	args, err := b.evalArgs(row)
+	if err != nil {
+		return types.Datum{}, errors.Trace(err)
+	}
+	switch args[0].Kind() {
+	case types.KindNull:
+		return d, nil
+	case types.KindString:
+		x, err := args[0].ToString()
+		if err != nil {
+			return d, errors.Trace(err)
+		}
+		d.SetString(strings.ToUpper(hex.EncodeToString(hack.Slice(x))))
+		return d, nil
+	//case types.KindInt64, types.KindUint64, types.KindFloat32, types.KindFloat64, types.KindMysqlDecimal:
+	//	x, _ := args[0].Cast(b.ctx.GetSessionVars().StmtCtx, types.NewFieldType(mysql.TypeLonglong))
+	//	h := fmt.Sprintf("%x", uint64(x.GetInt64()))
+	//	d.SetString(strings.ToUpper(h))
+	//	return d, nil
+	default:
+		return d, errors.Errorf("Hex invalid args, need int or string but get %T", args[0].GetValue())
+	}
+}
+
+type instrFunctionClass1 struct {
+	baseFunctionClass
+}
+
+func (c *instrFunctionClass1) getFunction(ctx context.Context, args []Expression) (builtinFunc, error) {
+	sig := &builtinInstrSig1{newBaseBuiltinFunc(args, ctx)}
+	return sig.setSelf(sig), errors.Trace(c.verifyArgs(args))
+}
+
+type builtinInstrSig1 struct {
+	baseBuiltinFunc
+}
+
+// eval evals a builtinInstrSig.
+// See https://dev.mysql.com/doc/refman/5.6/en/string-functions.html#function_instr
+func (b *builtinInstrSig1) eval(row []types.Datum) (d types.Datum, err error) {
+	args, err := b.evalArgs(row)
+	if err != nil {
+		return d, errors.Trace(err)
+	}
+	// INSTR(str, substr)
+	if args[0].IsNull() || args[1].IsNull() {
+		return d, nil
+	}
+
+	var str, substr string
+	if str, err = args[0].ToString(); err != nil {
+		return d, errors.Trace(err)
+	}
+	if substr, err = args[1].ToString(); err != nil {
+		return d, errors.Trace(err)
+	}
+
+	// INSTR performs case **insensitive** search by default, while at least one argument is binary string
+	// we do case sensitive search.
+	var caseSensitive bool
+	if args[0].Kind() == types.KindBytes || args[1].Kind() == types.KindBytes {
+		caseSensitive = true
+	}
+
+	var pos, idx int
+	if caseSensitive {
+		idx = strings.Index(str, substr)
+	} else {
+		idx = strings.Index(strings.ToLower(str), strings.ToLower(substr))
+	}
+	if idx == -1 {
+		pos = 0
+	} else {
+		if caseSensitive {
+			pos = idx + 1
+		} else {
+			pos = utf8.RuneCountInString(str[:idx]) + 1
+		}
+	}
+	d.SetInt64(int64(pos))
+	return d, nil
+}
+
+type insertFuncFunctionClass1 struct {
+	baseFunctionClass
+}
+
+func (c *insertFuncFunctionClass1) getFunction(ctx context.Context, args []Expression) (builtinFunc, error) {
+	sig := &builtinInsertFuncSig1{newBaseBuiltinFunc(args, ctx)}
+	return sig.setSelf(sig), errors.Trace(c.verifyArgs(args))
+}
+
+type builtinInsertFuncSig1 struct {
+	baseBuiltinFunc
+}
+
+// eval evals a builtinInsertFuncSig.
+// See https://dev.mysql.com/doc/refman/5.6/en/string-functions.html#function_insert
+func (b *builtinInsertFuncSig1) eval(row []types.Datum) (d types.Datum, err error) {
+	args, err := b.evalArgs(row)
+	if err != nil {
+		return d, errors.Trace(err)
+	}
+
+	// Returns NULL if any argument is NULL.
+	if args[0].IsNull() || args[1].IsNull() || args[2].IsNull() || args[3].IsNull() {
+		return
+	}
+
+	str0, err := args[0].ToString()
+	if err != nil {
+		return d, errors.Trace(err)
+	}
+	str := []rune(str0)
+	strLen := len(str)
+
+	posInt64, err := args[1].ToInt64(b.ctx.GetSessionVars().StmtCtx)
+	if err != nil {
+		return d, errors.Trace(err)
+	}
+	pos := int(posInt64)
+
+	lenInt64, err := args[2].ToInt64(b.ctx.GetSessionVars().StmtCtx)
+	if err != nil {
+		return d, errors.Trace(err)
+	}
+	length := int(lenInt64)
+
+	newstr, err := args[3].ToString()
+	if err != nil {
+		return d, errors.Trace(err)
+	}
+
+	var s string
+	if pos < 1 || pos > strLen {
+		s = str0
+	} else if length > strLen-pos+1 || length < 0 {
+		s = string(str[0:pos-1]) + newstr
+	} else {
+		s = string(str[0:pos-1]) + newstr + string(str[pos+length-1:])
+	}
+
+	d.SetString(s)
+	return d, nil
+}

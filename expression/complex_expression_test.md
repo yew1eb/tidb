@@ -35,3 +35,16 @@ expr3: TIMEDIFF(cast1, cast2)
 
 表达式树两个子树深度均为 6 层, 运算速度**提升**约 2.8 倍, 内存分配次数**减少** 74%, 内存分配总量**下降** 79%
 
+[case3: string func](./performance3_test.go)
+
+``` sql
+// expr:  hex(left(string, int))
+// expr1: insert(expr, int, int, string)
+// expr2: lpad(expr1, int, string)
+// expr3: instr(expr2, string)
+```
+
+- BenchmarkStringFunctionNew-4     2000000               784 ns/op              24 B/op          4 allocs/op
+- BenchmarkStringFunctionOld-4     2000000              1074 ns/op              16 B/op          2 allocs/op
+
+表达式树两个子树深度均为 5 层, 运算速度**提升**约 37%, 内存分配次数**增加** 1 倍, 内存分配总量**上升** 50%
