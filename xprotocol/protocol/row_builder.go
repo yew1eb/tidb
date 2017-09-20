@@ -14,8 +14,12 @@
 package protocol
 
 import (
+	log "github.com/Sirupsen/logrus"
 	"github.com/golang/protobuf/proto"
 	"github.com/pingcap/tidb/util/arena"
+	"strings"
+	"errors"
+	"strconv"
 )
 
 func DumpNullBinary() []byte {
@@ -23,8 +27,7 @@ func DumpNullBinary() []byte {
 }
 
 func DumpIntBinary(value int64) ([]byte, error) {
-	b := []byte{}
-	p := proto.NewBuffer(b)
+	p := proto.NewBuffer([]byte{})
 	if err := p.EncodeZigzag64(uint64(value)); err != nil {
 		return nil, err
 	}
@@ -32,8 +35,7 @@ func DumpIntBinary(value int64) ([]byte, error) {
 }
 
 func DumpUIntBinary(value uint64) ([]byte, error) {
-	b := []byte{}
-	p := proto.NewBuffer(b)
+	p := proto.NewBuffer([]byte{})
 	if err := p.EncodeVarint(uint64(value)); err != nil {
 		return nil, err
 	}
@@ -77,4 +79,55 @@ func DumpStringBinary(b []byte, alloc arena.Allocator) []byte {
 	data = append(data, b...)
 	data = append(data, byte(0))
 	return data
+}
+
+func StrToXDecimal(str string) ([]byte, error) {
+	if len(str) == 0 {
+		return nil, nil
+	}
+	scale := 0
+	dotPos := strings.Index(str, ".")
+	slices := strings.Split(str, ".")
+	if len(slices) > 2 {
+		return nil, errors.New("invalid decimal")
+	}
+	if dotPos != -1 {
+		scale = len(str) - dotPos - 1
+	}
+	dec := []byte{byte(scale)}
+	sign := 0xc
+	if strings.HasPrefix(slices[0], "-") || strings.HasPrefix(slices[0], "+") {
+		if strings.HasPrefix(slices[0], "-") {
+			sign = 0xd
+		}
+		slices[0] = slices[0][1:]
+	}
+
+	joined := ""
+	for _, v := range slices {
+		if _, err := strconv.Atoi(v); err != nil {
+			return nil, errors.New("invalid decimal")
+		}
+		joined += v
+	}
+
+	log.Infof("[YUSP] joined: %s", joined)
+	for i := 0; i < len(joined); i += 2 {
+		if i == len(joined) - 1 {
+			// If it is the last char of joined, append like the following.
+			dec = append(dec, byte((int(joined[i]) - int('0')) << 4 | sign))
+			sign = 0
+			break
+		}
+		// Append two char into one byte.
+		// If joined[i+1] is the last char, stop the loop.
+		// If joined[i+2] is the last char, stop the loop after append sign.
+		dec = append(dec, byte((int(joined[i]) - int('0')) << 4 | (int(joined[i+1]) - int('0'))))
+	}
+
+	if sign != 0 {
+		dec = append(dec, byte(sign << 4))
+	}
+	log.Infof("[YUSP] dec: %#o", dec)
+	return dec, nil
 }
