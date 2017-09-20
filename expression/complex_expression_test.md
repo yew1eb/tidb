@@ -44,7 +44,7 @@ expr3: TIMEDIFF(cast1, cast2)
 // expr3: instr(expr2, string)
 ```
 
-- BenchmarkStringFunctionNew-4     2000000               784 ns/op              24 B/op          4 allocs/op
-- BenchmarkStringFunctionOld-4     2000000              1074 ns/op              16 B/op          2 allocs/op
+- BenchmarkStringFunctionNew-4     3000000               467 ns/op              16 B/op          2 allocs/op
+- BenchmarkStringFunctionOld-4     2000000               977 ns/op              16 B/op          2 allocs/op
 
-表达式树两个子树深度均为 5 层, 运算速度**提升**约 37%, 内存分配次数**增加** 1 倍, 内存分配总量**上升** 50%
+表达式树两个子树深度均为 5 层, 运算速度**提升**约 1 倍, 内存影响不变

@@ -44,7 +44,7 @@ func buildStringFunctionNew() Expression {
 	if err != nil {
 		panic(err.Error())
 	}
-	expr2, err := NewFunction(ctx, ast.Lpad, unspecifiedType, expr1, col2, col4)
+	expr2, err := NewFunction(ctx, ast.Lpad, unspecifiedType, expr1, col2, col0)
 	if err != nil {
 		panic(err.Error())
 	}
