@@ -25,7 +25,6 @@ import (
 	"github.com/pingcap/tidb/util"
 	"github.com/pingcap/tidb/util/arena"
 	"github.com/pingcap/tidb/xprotocol/capability"
-	"github.com/pingcap/tidb/xprotocol/crud"
 	xutil "github.com/pingcap/tidb/xprotocol/util"
 	"github.com/pingcap/tidb/xprotocol/xpacketio"
 	"github.com/pingcap/tipb/go-mysqlx"
@@ -67,8 +66,8 @@ func (xcc *mysqlXClientConn) Run() {
 			}
 			return
 		}
+		log.Infof("[XUWT] dispatch msg type(%s), payload(%s)", tp, payload)
 		if err = xcc.dispatch(tp, payload); err != nil {
-			log.Infof("[XUWT] dispatch msg type(%s), payload(%s)", tp, payload)
 			if terror.ErrorEqual(err, terror.ErrResultUndetermined) {
 				log.Errorf("[%d] result undetermined error, close this connection %s",
 					xcc.connectionID, errors.ErrorStack(err))
@@ -223,7 +222,7 @@ func (xcc *mysqlXClientConn) writeError(e error) error {
 	} else {
 		m = mysql.NewErrf(mysql.ErrUnknown, "%s", e.Error())
 	}
-	errMsg, err := xutil.ErrorMessage(m.Code, m.Message, m.State).Marshal()
+	errMsg, err := xutil.XErrorMessage(m.Code, m.Message, m.State).Marshal()
 	if err != nil {
 		return err
 	}
@@ -271,13 +270,11 @@ func (xcc *mysqlXClientConn) CreateAuth(id uint32) *XAuth {
 
 type XSession struct {
 	xsql *xSQL
-	crud *crud.XCrud
 }
 
 func CreateXSession(xcc *mysqlXClientConn, id uint32, ctx driver.QueryCtx, pkt *xpacketio.XPacketIO, skipAuth bool) *XSession {
 	return &XSession{
 		xsql: CreateContext(xcc, ctx, pkt),
-		crud: crud.CreateCrud(ctx, pkt, xcc.alloc),
 	}
 }
 
@@ -287,12 +284,13 @@ func (xs *XSession) HandleMessage(msgType Mysqlx.ClientMessages_Type, payload []
 		if err := xs.xsql.DealSQLStmtExecute(payload); err != nil {
 			return err
 		}
+		// @TODO will support in next pr
 	case Mysqlx.ClientMessages_CRUD_FIND, Mysqlx.ClientMessages_CRUD_INSERT, Mysqlx.ClientMessages_CRUD_UPDATE, Mysqlx.ClientMessages_CRUD_DELETE,
 		Mysqlx.ClientMessages_CRUD_CREATE_VIEW, Mysqlx.ClientMessages_CRUD_MODIFY_VIEW, Mysqlx.ClientMessages_CRUD_DROP_VIEW:
-		if err := xs.crud.DealCrudStmtExecute(msgType, payload); err != nil {
-			return err
-		}
+		return xutil.ErXBadMessage
+		// @TODO will support in next pr
 	case Mysqlx.ClientMessages_EXPECT_OPEN, Mysqlx.ClientMessages_EXPECT_CLOSE:
+		return xutil.ErXBadMessage
 	default:
 		return errors.Errorf("unknown message type %d", msgType)
 	}

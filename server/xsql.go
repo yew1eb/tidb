@@ -18,7 +18,6 @@ import (
 	"github.com/pingcap/tidb/driver"
 	"github.com/pingcap/tidb/xprotocol/notice"
 	"github.com/pingcap/tidb/xprotocol/xpacketio"
-	"github.com/pingcap/tipb/go-mysqlx"
 	"github.com/pingcap/tipb/go-mysqlx/Sql"
 )
 
@@ -58,7 +57,7 @@ func (xsql *xSQL) DealSQLStmtExecute(payload []byte) error {
 	default:
 		return errors.New("unknown namespace")
 	}
-	return xsql.sendExecOk()
+	return notice.SendExecOk(xsql.pkt, xsql.ctx.LastInsertID())
 }
 
 func (xsql *xSQL) executeStmtNoResult(sql string) error {
@@ -77,19 +76,6 @@ func (xsql *xSQL) executeStmt(sql string) error {
 		if err := notice.WriteResultSet(r, xsql.pkt, xsql.xcc.alloc); err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-func (xsql *xSQL) sendExecOk() error {
-	// TODO: return more notice here, for example: rows affected.
-	if xsql.ctx.LastInsertID() > 0 {
-		if err := notice.SendLastInsertID(xsql.pkt, xsql.ctx.LastInsertID()); err != nil {
-			return errors.Trace(err)
-		}
-	}
-	if err := xsql.pkt.WritePacket(Mysqlx.ServerMessages_SQL_STMT_EXECUTE_OK, nil); err != nil {
-		return errors.Trace(err)
 	}
 	return nil
 }
