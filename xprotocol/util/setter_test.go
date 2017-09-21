@@ -19,6 +19,7 @@ import (
 )
 
 func (ts *testUtilTestSuite) TestSetScalar(c *C) {
+	c.Parallel()
 	sInt := int64(0)
 	uInt := uint64(0)
 	data := []byte{0}

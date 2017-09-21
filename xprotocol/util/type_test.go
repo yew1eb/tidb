@@ -64,3 +64,14 @@ func (ts *testUtilTestSuite) TestMysqlType2XType(c *C) {
 	}
 }
 
+func (ts *testUtilTestSuite) TestQuote(c *C) {
+	c.Parallel()
+	in := []string{"", "a&", "a"}
+	out := []string{"``", "`a&`", "a"}
+
+	for i, v := range in {
+		c.Assert(out[i], Equals, QuoteIdentifierIfNeeded(v), Commentf("%d", i))
+	}
+
+	c.Assert("'a'", Equals, QuoteString("a"))
+}

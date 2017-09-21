@@ -890,4 +890,5 @@ var MySQLErrName = map[uint16]string{
 	ErXBadMessage:                                            "Invalid message",
 	ErXBadSchema:                                             "Invalid schema",
 	ErXBadTable:                                              "Invalid collection name",
+	ErXCapabilitiesPrepareFailed:                             "Capability prepare failed for '%s'",
 }

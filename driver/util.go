@@ -369,36 +369,18 @@ func DumpDatumToBinary(alloc arena.Allocator, column *ColumnInfo, val types.Datu
 		v := val.GetInt64()
 		switch column.Type {
 		case mysql.TypeTiny, mysql.TypeShort, mysql.TypeYear, mysql.TypeInt24, mysql.TypeLong, mysql.TypeLonglong:
-			data, err := protocol.DumpIntBinary(v)
-			if err != nil {
-				return nil, errors.Trace(err)
-			}
-			return data, nil
+			return protocol.DumpIntBinary(v), nil
 		}
 	case types.KindUint64:
 		v := val.GetUint64()
 		switch column.Type {
 		case mysql.TypeTiny, mysql.TypeShort, mysql.TypeYear, mysql.TypeInt24, mysql.TypeLong, mysql.TypeLonglong:
-			data, err := protocol.DumpUIntBinary(v)
-			if err != nil {
-				return nil, errors.Trace(err)
-			}
-			return data, nil
+			return protocol.DumpUIntBinary(v), nil
 		}
 	case types.KindFloat32:
-		floatBits := math.Float32bits(val.GetFloat32())
-		data, err := protocol.DumpUIntBinary(uint64(floatBits))
-		if err != nil {
-			return nil, errors.Trace(err)
-		}
-		return data, nil
+		return protocol.DumpUIntBinary(uint64(math.Float32bits(val.GetFloat32()))), nil
 	case types.KindFloat64:
-		floatBits := math.Float64bits(val.GetFloat64())
-		data, err := protocol.DumpUIntBinary(uint64(floatBits))
-		if err != nil {
-			return nil, errors.Trace(err)
-		}
-		return data, nil
+		return protocol.DumpUIntBinary(math.Float64bits(val.GetFloat64())), nil
 	case types.KindString, types.KindBytes:
 		return protocol.DumpStringBinary(val.GetBytes(), alloc), nil
 	case types.KindMysqlDecimal:

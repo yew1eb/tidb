@@ -1,3 +1,16 @@
+// Copyright 2017 PingCAP, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package capability
 
 import (
@@ -8,38 +21,6 @@ import (
 	"github.com/pingcap/tipb/go-mysqlx/Connection"
 	"github.com/pingcap/tipb/go-mysqlx/Datatypes"
 )
-
-func getCapability(handler Handler) *Mysqlx_Connection.Capability {
-	return handler.Get()
-}
-
-// GetCapabilities gets capabilities which to be sent to clint.
-func GetCapabilities() *Mysqlx_Connection.Capabilities {
-	authHandler := &HandlerAuthMechanisms{
-		Values: []string{"MYSQL41"},
-	}
-	docHandler := &HandlerReadOnlyValue{
-		Name:  "doc.formats",
-		Value: "text",
-	}
-	nodeHandler := &HandlerReadOnlyValue{
-		Name:  "node_type",
-		Value: "mysql",
-	}
-	pwdHandler := &HandlerExpiredPasswords{
-		Name:    "client.pwd_expire_ok",
-		Expired: true,
-	}
-	caps := Mysqlx_Connection.Capabilities{
-		Capabilities: []*Mysqlx_Connection.Capability{
-			getCapability(authHandler),
-			getCapability(docHandler),
-			getCapability(nodeHandler),
-			getCapability(pwdHandler),
-		},
-	}
-	return &caps
-}
 
 // DealInitCapabilitiesSet deals the initial capabilities set message of client.
 func DealInitCapabilitiesSet(tp Mysqlx.ClientMessages_Type, msg []byte) error {

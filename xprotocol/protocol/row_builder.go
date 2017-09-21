@@ -23,21 +23,19 @@ import (
 )
 
 // DumpIntBinary dumps int to binary.
-func DumpIntBinary(value int64) ([]byte, error) {
+func DumpIntBinary(value int64) []byte {
 	p := proto.NewBuffer([]byte{})
-	if err := p.EncodeZigzag64(uint64(value)); err != nil {
-		return nil, err
-	}
-	return p.Bytes(), nil
+	// error == nil for ever
+	_ = p.EncodeZigzag64(uint64(value))
+	return p.Bytes()
 }
 
 // DumpUIntBinary dumps uint to binary.
-func DumpUIntBinary(value uint64) ([]byte, error) {
+func DumpUIntBinary(value uint64) []byte {
 	p := proto.NewBuffer([]byte{})
-	if err := p.EncodeVarint(uint64(value)); err != nil {
-		return nil, err
-	}
-	return p.Bytes(), nil
+	// error == nil for ever
+	_ = p.EncodeVarint(uint64(value))
+	return p.Bytes()
 }
 
 // DumpStringBinary dumps string to binary.
@@ -60,7 +58,7 @@ func StrToXDecimal(str string) ([]byte, error) {
 	dotPos := strings.Index(str, ".")
 	slices := strings.Split(str, ".")
 
-	if len(slices) > 2 {
+	if len(slices) > 2 || len(slices[0]) == 0 {
 		return nil, errors.New("invalid decimal")
 	}
 
@@ -73,6 +71,9 @@ func StrToXDecimal(str string) ([]byte, error) {
 	if strings.HasPrefix(slices[0], "-") || strings.HasPrefix(slices[0], "+") {
 		if strings.HasPrefix(slices[0], "-") {
 			sign = 0xd
+		}
+		if len(slices[0]) == 1 {
+			return nil, errors.New("invalid decimal")
 		}
 		slices[0] = slices[0][1:]
 	}
