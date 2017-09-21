@@ -26,6 +26,7 @@ import (
 const (
 	countDoc string = "COUNT(CASE WHEN (column_name = 'doc' " +
 		"AND data_type = 'json') THEN 1 ELSE NULL END)"
+
 	// countID is not exactly same as MySQL X Protocol,
 	//     TiDB: JSON_UNQUOTE(JSON_EXTRACT(doc,''$._id''))
 	//     MySQL: json_unquote(json_extract(`doc`,''$._id''))'

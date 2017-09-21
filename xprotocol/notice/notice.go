@@ -158,7 +158,7 @@ func WriteResultSet(r driver.ResultSet, pkt *xpacketio.XPacketIO, alloc arena.Al
 		}
 		flags := uint32(c.Flag)
 		columnMeta := Mysqlx_Resultset.ColumnMetaData{
-			Type:          tp,
+			Type:          &tp,
 			Name:          []byte(c.Name),
 			Table:         []byte(c.OrgName),
 			OriginalTable: []byte(c.OrgTable),
