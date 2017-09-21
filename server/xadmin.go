@@ -133,9 +133,9 @@ func (xsql *xSQL) createCollectionImpl(args []*Mysqlx_Datatypes.Any) error {
 
 	sql := "CREATE TABLE "
 	if len(schema) != 0 {
-		sql += quoteIdentifier(schema) + "."
+		sql += util.QuoteIdentifier(schema) + "."
 	}
-	sql += quoteIdentifier(collection) + " (doc JSON," +
+	sql += util.QuoteIdentifier(collection) + " (doc JSON," +
 		"_id VARCHAR(32) GENERATED ALWAYS AS (JSON_UNQUOTE(JSON_EXTRACT(doc, '$._id'))) STORED PRIMARY KEY" +
 		") CHARSET utf8mb4 ENGINE=InnoDB;"
 	log.Infof("CreateCollection: %s", collection)
@@ -203,7 +203,7 @@ func (xsql *xSQL) dropCollection(args []*Mysqlx_Datatypes.Any) error {
 	if len(collection) == 0 {
 		return util.ErXBadTable
 	}
-	sql := "DROP TABLE " + quoteIdentifier(schema) + "." + quoteIdentifier(collection)
+	sql := "DROP TABLE " + util.QuoteIdentifier(schema) + "." + util.QuoteIdentifier(collection)
 	log.Infof("DropCollection: %s", collection)
 	if err := xsql.executeStmtNoResult(sql); err != nil {
 		return errors.Trace(err)
@@ -269,11 +269,11 @@ func (xsql *xSQL) listObjects(args []*Mysqlx_Datatypes.Any) error {
 	if len(schema) == 0 {
 		sql += "schema()"
 	} else {
-		sql += quoteString(schema)
+		sql += util.QuoteString(schema)
 	}
 
 	if len(pattern) != 0 {
-		sql += " AND T.table_name LIKE " + quoteString(pattern)
+		sql += " AND T.table_name LIKE " + util.QuoteString(pattern)
 	}
 
 	sql += " GROUP BY name ORDER BY name"
@@ -313,7 +313,7 @@ func (xsql *xSQL) listNotices(args []*Mysqlx_Datatypes.Any) error {
 func (xsql *xSQL) isSchemaSelectedAndExists(schema string) error {
 	sql := "SHOW TABLES"
 	if len(schema) != 0 {
-		sql = sql + " FROM " + quoteIdentifier(schema)
+		sql = sql + " FROM " + util.QuoteIdentifier(schema)
 	}
 	if err := xsql.executeStmtNoResult(sql); err != nil {
 		return errors.Trace(err)
@@ -321,22 +321,15 @@ func (xsql *xSQL) isSchemaSelectedAndExists(schema string) error {
 	return nil
 }
 
-func quoteIdentifier(str string) string {
-	return "`" + str + "`"
-}
-
-func quoteString(str string) string {
-	return "'" + str + "'"
-}
 
 func (xsql *xSQL) isCollection(schema string, collection string) (bool, error) {
 	sql := "SELECT COUNT(*) AS cnt," + countDoc + " As doc," + countID + " AS id," + countGen +
 		" AS gen " + "FROM information_schema.columns WHERE table_name = " +
-		quoteString(collection) + " AND table_schema = "
+		util.QuoteString(collection) + " AND table_schema = "
 	if len(schema) == 0 {
 		sql += "schema()"
 	} else {
-		sql += quoteString(schema)
+		sql += util.QuoteString(schema)
 	}
 	rs, err := xsql.ctx.Execute(sql)
 	if err != nil {

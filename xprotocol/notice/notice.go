@@ -208,6 +208,18 @@ func WriteResultSet(r driver.ResultSet, pkt *xpacketio.XPacketIO, alloc arena.Al
 	return nil
 }
 
+func SendExecOk(pkt *xpacketio.XPacketIO, lastID uint64) error {
+	if lastID > 0 {
+		if err := SendLastInsertID(pkt, lastID); err != nil {
+			return errors.Trace(err)
+		}
+	}
+	if err := pkt.WritePacket(Mysqlx.ServerMessages_SQL_STMT_EXECUTE_OK, nil); err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
 func rowToRow(alloc arena.Allocator, columns []*driver.ColumnInfo, row []types.Datum) (*Mysqlx_Resultset.Row, error) {
 	if len(columns) != len(row) {
 		return nil, mysql.ErrMalformPacket

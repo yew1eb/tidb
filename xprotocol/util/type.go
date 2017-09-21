@@ -1,6 +1,7 @@
 package util
 
 import (
+	"unicode"
 	"github.com/juju/errors"
 	"github.com/pingcap/tidb/mysql"
 	"github.com/pingcap/tidb/util/types"
@@ -92,4 +93,32 @@ func MysqlType2XType(tp byte, unsigned bool) (*Mysqlx_Resultset.ColumnMetaData_F
 		}
 	}
 	return nil, errors.Errorf("unknown column type %s", types.TypeStr(tp))
+}
+
+func QuoteIdentifier(str string) string {
+	return "`" + str + "`"
+}
+
+func QuoteIdentifierIfNeeded(str string) string {
+	needQuote := false
+	if len(str) > 0 && unicode.IsLetter(rune(str[0])) {
+		for _, r := range str[1:] {
+			if !unicode.IsLetter(r) && !unicode.IsNumber(r) && r != '_' {
+				needQuote = true
+				break
+			}
+		}
+	} else {
+		needQuote = true
+	}
+
+	if needQuote {
+		return QuoteIdentifier(str)
+	} else {
+		return str
+	}
+}
+
+func QuoteString(str string) string {
+	return "'" + str + "'"
 }
