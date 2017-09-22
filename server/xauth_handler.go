@@ -19,12 +19,12 @@ type Response struct {
 	errCode uint16
 }
 
-type AuthenticationHandler interface {
+type authHandler interface {
 	handleStart(mechanism *string, data []byte, initial_response []byte) *Response
 	handleContinue(data []byte) *Response
 }
 
-func (xa *XAuth) createAuthHandler(method string) AuthenticationHandler {
+func (xa *XAuth) createAuthHandler(method string) authHandler {
 	switch method {
 	case "MYSQL41":
 		return &saslMysql41Auth{

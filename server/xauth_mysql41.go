@@ -75,7 +75,6 @@ func (spa *saslMysql41Auth) handleContinue(data []byte) *Response {
 			addr := spa.xauth.xcc.conn.RemoteAddr().String()
 			host, _, err1 := net.SplitHostPort(addr)
 			if err1 != nil {
-				//err = errors.Trace(errAccessDenied.GenByArgs(spa.xauth.User, addr, "YES"))
 				err = xutil.ErrXAccessDenied
 			}
 			if !spa.xauth.xcc.ctx.Auth(&auth.UserIdentity{Username: string(user), Hostname: host},

@@ -36,7 +36,7 @@ import (
 type mysqlXClientConn struct {
 	pkt          *xpacketio.XPacketIO // a helper to read and write data in packet format.
 	conn         net.Conn
-	xauth        XAuth
+	xauth        *XAuth
 	xsession     *xSession
 	server       *Server                        // a reference of server instance.
 	capability   uint32                         // client capability affects the way server handles client request.
@@ -143,35 +143,23 @@ func (xcc *mysqlXClientConn) handshakeConnection() error {
 	return xcc.writeError(xutil.ErXCapabilitiesPrepareFailed.GenByArgs("tls"))
 }
 
-func (xcc *mysqlXClientConn) handshakeSession() error {
-	tp, msg, err := xcc.pkt.ReadPacket()
-	if err != nil {
-		return errors.Trace(err)
-	}
 
-	// Open session and do auth
-	var ctx driver.QueryCtx
-	ctx, err = xcc.server.driver.OpenCtx(uint64(xcc.connectionID), xcc.capability, uint8(xcc.collation), xcc.dbname, nil)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	xcc.ctx = ctx
-	xcc.xsession = createXSession(xcc, xcc.connectionID, xcc.pkt, xcc.server.skipAuth())
+func (xcc *mysqlXClientConn) auth() error {
+	for {
+		tp, msg, err := xcc.pkt.ReadPacket()
+		if err != nil {
+			return err
+		}
 
-	xcc.xauth = *xcc.createAuth(xcc.connectionID)
-	if err := xcc.xauth.handleMessage(tp, msg); err != nil {
-		return errors.Trace(err)
-	}
+		if err = xcc.xauth.handleMessage(tp, msg); err != nil {
+			xcc.writeError(err)
+			return err
+		}
 
-	tp, msg, err = xcc.pkt.ReadPacket()
-	if err != nil {
-		return errors.Trace(err)
+		if xcc.xauth.ready() {
+			break
+		}
 	}
-
-	if err := xcc.xauth.handleMessage(tp, msg); err != nil {
-		return errors.Trace(err)
-	}
-
 	return nil
 }
 
@@ -180,7 +168,17 @@ func (xcc *mysqlXClientConn) handshake() error {
 		return err
 	}
 
-	if err := xcc.handshakeSession(); err != nil {
+	// Open session
+	ctx, err := xcc.server.driver.OpenCtx(uint64(xcc.connectionID), xcc.capability, uint8(xcc.collation), xcc.dbname, nil)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	xcc.ctx = ctx
+	xcc.xsession = xcc.createXSession()
+	xcc.xauth = xcc.createAuth(xcc.connectionID)
+
+	// do auth
+	if err := xcc.auth(); err != nil {
 		return err
 	}
 
@@ -197,10 +195,8 @@ func (xcc *mysqlXClientConn) handshake() error {
 func (xcc *mysqlXClientConn) dispatch(tp Mysqlx.ClientMessages_Type, payload []byte) error {
 	msgType := Mysqlx.ClientMessages_Type(tp)
 	switch msgType {
-	case Mysqlx.ClientMessages_SESS_CLOSE, Mysqlx.ClientMessages_CON_CLOSE, Mysqlx.ClientMessages_SESS_RESET:
-		if err := xcc.xauth.HandleReadyMessage(msgType, payload); err != nil {
-			return err
-		}
+	case Mysqlx.ClientMessages_SESS_CLOSE, Mysqlx.ClientMessages_SESS_RESET, Mysqlx.ClientMessages_CON_CLOSE:
+		return xcc.xauth.handleMessage(msgType, payload)
 	default:
 		return xcc.xsession.handleMessage(msgType, payload)
 	}
@@ -275,21 +271,19 @@ func (xcc *mysqlXClientConn) addCapability(h capability.Handler) {
 }
 
 type xSession struct {
-	xsql *xSQL
+	xsql  *xSQL
 }
 
-func createXSession(xcc *mysqlXClientConn, id uint32, pkt *xpacketio.XPacketIO, skipAuth bool) *xSession {
+func (xcc *mysqlXClientConn) createXSession() *xSession {
 	return &xSession{
-		xsql: createContext(xcc, pkt),
+		xsql: createContext(xcc),
 	}
 }
 
 func (xs *xSession) handleMessage(msgType Mysqlx.ClientMessages_Type, payload []byte) error {
 	switch msgType {
 	case Mysqlx.ClientMessages_SQL_STMT_EXECUTE:
-		if err := xs.xsql.dealSQLStmtExecute(payload); err != nil {
-			return err
-		}
+		return xs.xsql.dealSQLStmtExecute(payload)
 		// @TODO will support in next pr
 	case Mysqlx.ClientMessages_CRUD_FIND, Mysqlx.ClientMessages_CRUD_INSERT, Mysqlx.ClientMessages_CRUD_UPDATE, Mysqlx.ClientMessages_CRUD_DELETE,
 		Mysqlx.ClientMessages_CRUD_CREATE_VIEW, Mysqlx.ClientMessages_CRUD_MODIFY_VIEW, Mysqlx.ClientMessages_CRUD_DROP_VIEW:

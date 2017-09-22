@@ -49,9 +49,9 @@ func (n *Notice) SendNotice(scope Mysqlx_Notice.Frame_Scope, forceFlush bool) er
 	return nil
 }
 
-func SendOK(pkt *xpacketio.XPacketIO, content *string) error {
+func SendNoticeOK(pkt *xpacketio.XPacketIO, content string) error {
 	msg := Mysqlx.Ok{
-		Msg: content,
+		Msg: &content,
 	}
 
 	data, err := msg.Marshal()
@@ -118,25 +118,6 @@ func SendClientId(pkt *xpacketio.XPacketIO, sessionId uint32) error {
 	}
 
 	return notice.SendLocalNotice(false)
-}
-
-func SendInitError(pkt *xpacketio.XPacketIO, code *uint16, msg *string) error {
-	errCode := uint32(*code)
-	sqlState := mysql.DefaultMySQLState
-	severity := Mysqlx.Error_Severity(Mysqlx.Error_FATAL)
-	mysqlxErr := Mysqlx.Error{
-		Code:     &errCode,
-		SqlState: &sqlState,
-		Msg:      msg,
-		Severity: &severity,
-	}
-
-	data, err := mysqlxErr.Marshal()
-	if err != nil {
-		return err
-	}
-
-	return pkt.WritePacket(Mysqlx.ServerMessages_ERROR, data)
 }
 
 func WriteResultSet(r driver.ResultSet, pkt *xpacketio.XPacketIO, alloc arena.Allocator) error {

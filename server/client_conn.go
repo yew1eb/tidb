@@ -15,13 +15,9 @@ package server
 
 import (
 	"net"
-	"sync/atomic"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/pingcap/tidb/mysql"
 	"github.com/pingcap/tidb/util"
-	"github.com/pingcap/tidb/util/arena"
-	"github.com/pingcap/tidb/xprotocol/xpacketio"
 )
 
 type clientConn interface {
@@ -43,18 +39,9 @@ func createClientConn(conn net.Conn, s *Server) clientConn {
 	case MysqlProtocol:
 		return s.newConn(conn)
 	case MysqlXProtocol:
-		return &mysqlXClientConn{
-			conn:         conn,
-			pkt:          xpacketio.NewXPacketIO(conn),
-			server:       s,
-			capability:   defaultCapability,
-			connectionID: atomic.AddUint32(&baseConnID, 1),
-			collation:    mysql.DefaultCollationID,
-			alloc:        arena.NewAllocator(32 * 1024),
-			salt:         util.RandomBuf(mysql.ScrambleLength),
-		}
+		return s.newXConn(conn)
 	default:
-		log.Error("unknown server type.")
+		log.Errorf("can't create client connection, unknown server type %d.", s.tp)
 		return nil
 	}
 }

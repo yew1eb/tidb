@@ -32,11 +32,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"io/ioutil"
-	"math/rand"
 	"net"
 	"sync"
 	"sync/atomic"
-	"time"
 	// For pprof
 	_ "net/http/pprof"
 
@@ -49,6 +47,9 @@ import (
 	"github.com/pingcap/tidb/terror"
 	"github.com/pingcap/tidb/util"
 	"github.com/pingcap/tidb/util/arena"
+	"github.com/pingcap/tidb/xprotocol/xpacketio"
+	"time"
+	"math/rand"
 )
 
 var (
@@ -133,6 +134,19 @@ func (s *Server) newConn(conn net.Conn) *mysqlClientConn {
 	cc.setConn(conn)
 	cc.salt = util.RandomBuf(mysql.ScrambleLength)
 	return cc
+}
+
+func (s *Server) newXConn(conn net.Conn) *mysqlXClientConn {
+	return &mysqlXClientConn{
+		conn:         conn,
+		pkt:          xpacketio.NewXPacketIO(conn),
+		server:       s,
+		capability:   defaultCapability,
+		connectionID: atomic.AddUint32(&baseConnID, 1),
+		collation:    mysql.DefaultCollationID,
+		alloc:        arena.NewAllocator(32 * 1024),
+		salt:         util.RandomBuf(mysql.ScrambleLength),
+	}
 }
 
 func (s *Server) skipAuth() bool {
@@ -290,6 +304,10 @@ func (s *Server) Close() {
 // onConn runs in its own goroutine, handles queries from this connection.
 func (s *Server) onConn(c net.Conn) {
 	conn := createClientConn(c, s)
+	if conn == nil {
+		return
+	}
+
 	defer func() {
 		log.Infof("[%d] close connection", conn.id())
 	}()

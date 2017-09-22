@@ -28,11 +28,11 @@ type xSQL struct {
 	pkt *xpacketio.XPacketIO
 }
 
-func createContext(xcc *mysqlXClientConn, pkt *xpacketio.XPacketIO) *xSQL {
+func createContext(xcc *mysqlXClientConn) *xSQL {
 	return &xSQL{
 		xcc: xcc,
 		ctx: &xcc.ctx,
-		pkt: pkt,
+		pkt: xcc.pkt,
 	}
 }
 
