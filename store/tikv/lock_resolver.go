@@ -17,6 +17,7 @@ import (
 	"container/list"
 	"fmt"
 	"sync"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/juju/errors"
@@ -37,6 +38,10 @@ type LockResolver struct {
 		resolved       map[uint64]TxnStatus
 		recentResolved *list.List
 	}
+	cntTxnStatus	int64
+	costTxnStatus	time.Duration
+	cntClearLock	int64
+	costClearLock	time.Duration
 }
 
 func newLockResolver(store *tikvStore) *LockResolver {
@@ -197,6 +202,11 @@ func (lr *LockResolver) getTxnStatus(bo *Backoffer, txnID uint64, primary []byte
 	}
 
 	lockResolverCounter.WithLabelValues("query_txn_status").Inc()
+	tempTime := time.Now()
+	defer func() {
+		lr.cntTxnStatus = lr.cntTxnStatus + 1
+		lr.costTxnStatus = lr.costTxnStatus + time.Since(tempTime)
+	}()
 
 	var status TxnStatus
 	req := &tikvrpc.Request{
@@ -265,7 +275,11 @@ func (lr *LockResolver) resolveLock(bo *Backoffer, l *Lock, status TxnStatus, cl
 		if status.IsCommitted() {
 			req.ResolveLock.CommitVersion = status.CommitTS()
 		}
+		tempTime := time.Now()
 		resp, err := lr.store.SendReq(bo, req, loc.Region, readTimeoutShort)
+		lr.cntClearLock = lr.cntClearLock + 1
+		lr.costClearLock = lr.costClearLock + time.Since(tempTime)
+
 		if err != nil {
 			return errors.Trace(err)
 		}

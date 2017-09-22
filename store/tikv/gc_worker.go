@@ -113,6 +113,7 @@ func (w *GCWorker) start(ctx goctx.Context) {
 		case <-ticker.C:
 			w.tick(ctx)
 		case err := <-w.done:
+			log.Info("one w.done received, gcIsRunning is reset")
 			w.gcIsRunning = false
 			w.lastFinish = time.Now()
 			if err != nil {
@@ -177,18 +178,22 @@ func (w *GCWorker) storeIsBootstrapped() bool {
 
 // Leader of GC worker checks if it should start a GC job every tick.
 func (w *GCWorker) leaderTick(ctx goctx.Context) error {
+	log.Info("enter leaderTick")
 	if w.gcIsRunning {
+		log.Info("exit leaderTick because gcIsRunning")
 		return nil
 	}
 
 	ok, safePoint, err := w.prepare()
 	if err != nil || !ok {
+		log.Info("exit leaderTick because prepare error:", err)
 		return errors.Trace(err)
 	}
 
 	// When the worker is just started, or an old GC job has just finished,
 	// wait a while before starting a new job.
 	if time.Since(w.lastFinish) < gcWaitTime {
+		log.Info("exit leaderTick because lastFinish < gcWaitTime")
 		return nil
 	}
 
@@ -203,14 +208,17 @@ func (w *GCWorker) leaderTick(ctx goctx.Context) error {
 func (w *GCWorker) prepare() (bool, uint64, error) {
 	now, err := w.getOracleTime()
 	if err != nil {
+		log.Info("prepare getOracleTime err:", err)
 		return false, 0, errors.Trace(err)
 	}
 	ok, err := w.checkGCInterval(now)
 	if err != nil || !ok {
+		log.Info("prepare checkGVInterval err or not ok:", err, ok)
 		return false, 0, errors.Trace(err)
 	}
 	newSafePoint, err := w.calculateNewSafePoint(now)
 	if err != nil || newSafePoint == nil {
+		log.Info("prepare calculateNewSafePoint err or nil newSafePoint", err, newSafePoint)
 		return false, 0, errors.Trace(err)
 	}
 	err = w.saveTime(gcLastRunTimeKey, now)
@@ -245,6 +253,7 @@ func (w *GCWorker) checkGCInterval(now time.Time) (bool, error) {
 		return false, errors.Trace(err)
 	}
 	if lastRun != nil && lastRun.Add(*runInterval).After(now) {
+		log.Infof("lastRun (%v) plus runInterval (%v) should be after now (%v)", lastRun, *runInterval, time.Now())
 		return false, nil
 	}
 	return true, nil
@@ -400,6 +409,8 @@ func resolveLocks(ctx goctx.Context, store *tikvStore, safePoint uint64, identif
 	startTime := time.Now()
 	regions, totalResolvedLocks := 0, 0
 
+	regionStartTime := time.Now()
+	log.Info("start to clear a region")
 	var key []byte
 	for {
 		select {
@@ -407,12 +418,17 @@ func resolveLocks(ctx goctx.Context, store *tikvStore, safePoint uint64, identif
 			return errors.New("[gc worker] gc job canceled")
 		default:
 		}
-
+		log.Info("begin to locate key")
+		tempTime := time.Now();
 		loc, err := store.regionCache.LocateKey(bo, key)
+		log.Infof("it takes %v to locate key", time.Since(tempTime))
 		if err != nil {
 			return errors.Trace(err)
 		}
+		log.Info("begin to send scanlock command")
+		tempTime = time.Now()
 		resp, err := store.SendReq(bo, req, loc.Region, readTimeoutMedium)
+		log.Infof("it takes %v to send scanlock command", time.Since(tempTime))
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -436,10 +452,20 @@ func resolveLocks(ctx goctx.Context, store *tikvStore, safePoint uint64, identif
 		}
 		locksInfo := locksResp.GetLocks()
 		locks := make([]*Lock, len(locksInfo))
+		log.Infof("There are %v locks", len(locksInfo))
 		for i := range locksInfo {
 			locks[i] = newLock(locksInfo[i])
 		}
+		log.Info("begin to resolve locks")
+		store.lockResolver.cntTxnStatus = 0
+		store.lockResolver.costTxnStatus = 0
+		store.lockResolver.cntClearLock = 0
+		store.lockResolver.costClearLock = 0
+		tempTime = time.Now()
 		ok, err1 := store.lockResolver.ResolveLocks(bo, locks)
+		log.Infof("it takes %v to look up %v txn status", store.lockResolver.costTxnStatus, store.lockResolver.cntTxnStatus)
+		log.Infof("it takes %v to clear %v locks", store.lockResolver.costClearLock, store.lockResolver.cntClearLock)
+		log.Infof("it takes %v to resolve locks", time.Since(tempTime))
 		if err1 != nil {
 			return errors.Trace(err1)
 		}
@@ -451,6 +477,8 @@ func resolveLocks(ctx goctx.Context, store *tikvStore, safePoint uint64, identif
 			continue
 		}
 		regions++
+		log.Infof("finish a region at the cost of %v", time.Since(regionStartTime))
+		regionStartTime = time.Now()
 		totalResolvedLocks += len(locks)
 		key = loc.EndKey
 		if len(key) == 0 {
