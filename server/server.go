@@ -86,7 +86,7 @@ type Server struct {
 	listener          net.Listener
 	rwlock            *sync.RWMutex
 	concurrentLimiter *TokenLimiter
-	typ               int
+	tp                int
 	clients           map[uint32]clientConn
 	capability        uint32
 
@@ -148,7 +148,7 @@ func NewServer(cfg *config.Config, driver driver.IDriver, serverType int) (*Serv
 		driver:            driver,
 		concurrentLimiter: NewTokenLimiter(tokenLimit),
 		rwlock:            &sync.RWMutex{},
-		typ:               serverType,
+		tp:                serverType,
 		clients:           make(map[uint32]clientConn),
 		stopListenerCh:    make(chan struct{}, 1),
 	}

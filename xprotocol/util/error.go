@@ -35,6 +35,7 @@ var (
 	ErXInvalidCollection         = ErrorMessage(mysql.ErXInvalidCollection, mysql.MySQLErrName[mysql.ErXInvalidCollection])
 	ErrJSONUsedAsKey             = ErrorMessage(mysql.ErrJSONUsedAsKey, mysql.MySQLErrName[mysql.ErrJSONUsedAsKey])
 	ErXBadNotice                 = ErrorMessage(mysql.ErXBadNotice, mysql.MySQLErrName[mysql.ErXBadNotice])
+	ErXInvalidNamespace          = ErrorMessage(mysql.ErXInvalidNamespace, mysql.MySQLErrName[mysql.ErXInvalidNamespace])
 )
 
 const (
@@ -47,13 +48,10 @@ const (
 	codeErrJSONUsedAsKey                            = terror.ErrCode(mysql.ErrJSONUsedAsKey)
 	codeErXBadNotice                                = terror.ErrCode(mysql.ErXBadNotice)
 	codeErXCapabilitiesPrepareFailed                = terror.ErrCode(mysql.ErXCapabilitiesPrepareFailed)
-
-	// crud
-	CodeErXBadProjection = terror.ErrCode(mysql.ErXBadProjection)
-	CodeErXBadInsertData = terror.ErrCode(mysql.ErXBadInsertData)
-
-	// expr
-	CodeErXExprMissingArg = terror.ErrCode(mysql.ErXExprMissingArg)
+	codeErXBadProjection                            = terror.ErrCode(mysql.ErXBadProjection)
+	codeErXBadInsertData                            = terror.ErrCode(mysql.ErXBadInsertData)
+	codeErXExprMissingArg                           = terror.ErrCode(mysql.ErXExprMissingArg)
+	codeErXInvalidNamespace                         = terror.ErrCode(mysql.ErXInvalidNamespace)
 )
 
 func init() {
@@ -67,9 +65,10 @@ func init() {
 		codeErXInvalidCollection:         mysql.ErXInvalidCollection,
 		codeErrJSONUsedAsKey:             mysql.ErrJSONUsedAsKey,
 		codeErXBadNotice:                 mysql.ErXBadNotice,
-		CodeErXBadProjection:             mysql.ErXBadProjection,
-		CodeErXBadInsertData:             mysql.ErXBadInsertData,
-		CodeErXExprMissingArg:            mysql.ErXExprMissingArg,
+		codeErXBadProjection:             mysql.ErXBadProjection,
+		codeErXBadInsertData:             mysql.ErXBadInsertData,
+		codeErXExprMissingArg:            mysql.ErXExprMissingArg,
+		codeErXInvalidNamespace:          mysql.ErXInvalidNamespace,
 	}
 	terror.ErrClassToMySQLCodes[terror.ClassXProtocol] = xProtocolMySQLErrCodes
 }

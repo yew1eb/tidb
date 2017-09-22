@@ -19,25 +19,24 @@ import (
 	"github.com/pingcap/tidb/xprotocol/notice"
 	"github.com/pingcap/tidb/xprotocol/xpacketio"
 	"github.com/pingcap/tipb/go-mysqlx/Sql"
+	"github.com/pingcap/tidb/xprotocol/util"
 )
 
 type xSQL struct {
 	xcc *mysqlXClientConn
-	ctx driver.QueryCtx
+	ctx *driver.QueryCtx
 	pkt *xpacketio.XPacketIO
 }
 
-// CreateContext is the init function for sql context.
-func CreateContext(xcc *mysqlXClientConn, ctx driver.QueryCtx, pkt *xpacketio.XPacketIO) *xSQL {
+func createContext(xcc *mysqlXClientConn, pkt *xpacketio.XPacketIO) *xSQL {
 	return &xSQL{
 		xcc: xcc,
-		ctx: ctx,
+		ctx: &xcc.ctx,
 		pkt: pkt,
 	}
 }
 
-// DealSQLStmtExecute deals Mysqlx.ClientMessages_SQL_STMT_EXECUTE message.
-func (xsql *xSQL) DealSQLStmtExecute(payload []byte) error {
+func (xsql *xSQL) dealSQLStmtExecute(payload []byte) error {
 	var msg Mysqlx_Sql.StmtExecute
 	if err := msg.Unmarshal(payload); err != nil {
 		return err
@@ -55,20 +54,20 @@ func (xsql *xSQL) DealSQLStmtExecute(payload []byte) error {
 			return errors.Trace(err)
 		}
 	default:
-		return errors.New("unknown namespace")
+		return util.ErXInvalidNamespace.GenByArgs(msg.GetNamespace())
 	}
-	return notice.SendExecOk(xsql.pkt, xsql.ctx.LastInsertID())
+	return notice.SendExecOk(xsql.pkt, (*xsql.ctx).LastInsertID())
 }
 
 func (xsql *xSQL) executeStmtNoResult(sql string) error {
-	if _, err := xsql.ctx.Execute(sql); err != nil {
+	if _, err := (*xsql.ctx).Execute(sql); err != nil {
 		return errors.Trace(err)
 	}
 	return nil
 }
 
 func (xsql *xSQL) executeStmt(sql string) error {
-	rs, err := xsql.ctx.Execute(sql)
+	rs, err := (*xsql.ctx).Execute(sql)
 	if err != nil {
 		return err
 	}

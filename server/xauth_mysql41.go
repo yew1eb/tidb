@@ -69,14 +69,6 @@ func (spa *saslMysql41Auth) handleContinue(data []byte) *Response {
 		xcc := spa.xauth.xcc
 		xcc.dbname = string(dbname)
 		xcc.user = string(user)
-		// Open session and do auth
-
-		//ctx, err1 := xcc.server.driver.OpenCtx(uint64(xcc.connectionID), xcc.capability, uint8(xcc.collation), xcc.dbname, nil)
-		//if err1 != nil {
-		//	err = xutil.ErrXNoSuchUser
-		//}
-		//xcc.xsession = CreateXSession(xcc, xcc.connectionID, ctx, xcc.pkt, xcc.server.skipAuth())
-		//xcc.ctx, err1 = xcc.server.driver.OpenCtx(uint64(xcc.connectionID), xcc.capability, uint8(xcc.collation), xcc.dbname, nil)
 
 		if !spa.xauth.xcc.server.skipAuth() {
 			// Do Auth
@@ -86,7 +78,7 @@ func (spa *saslMysql41Auth) handleContinue(data []byte) *Response {
 				//err = errors.Trace(errAccessDenied.GenByArgs(spa.xauth.User, addr, "YES"))
 				err = xutil.ErrXAccessDenied
 			}
-			if !spa.xauth.xcc.xsession.xsql.ctx.Auth(&auth.UserIdentity{Username: string(user), Hostname: host},
+			if !spa.xauth.xcc.ctx.Auth(&auth.UserIdentity{Username: string(user), Hostname: host},
 				passwd, spa.m_salt) {
 				err = xutil.ErrXAccessDenied
 			}

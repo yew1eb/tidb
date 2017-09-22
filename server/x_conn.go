@@ -37,7 +37,7 @@ type mysqlXClientConn struct {
 	pkt          *xpacketio.XPacketIO // a helper to read and write data in packet format.
 	conn         net.Conn
 	xauth        XAuth
-	xsession     *XSession
+	xsession     *xSession
 	server       *Server                        // a reference of server instance.
 	capability   uint32                         // client capability affects the way server handles client request.
 	capabilities Mysqlx_Connection.Capabilities // mysql shell client capabilities affects the way server handles client request.
@@ -48,9 +48,9 @@ type mysqlXClientConn struct {
 	salt         []byte                         // random bytes used for authentication.
 	alloc        arena.Allocator                // an memory allocator for reducing memory allocation.
 	lastCmd      string                         // latest sql query string, currently used for logging error.
-	//ctx          driver.QueryCtx   // an interface to execute sql statements.
-	attrs  map[string]string // attributes parsed from client handshake response, not used for now.
-	killed bool
+	ctx          driver.QueryCtx                // an interface to execute sql statements.
+	attrs        map[string]string              // attributes parsed from client handshake response, not used for now.
+	killed       bool
 }
 
 func (xcc *mysqlXClientConn) Run() {
@@ -96,8 +96,8 @@ func (xcc *mysqlXClientConn) Close() error {
 	xcc.server.rwlock.Unlock()
 	connGauge.Set(float64(connections))
 	xcc.conn.Close()
-	if xcc.xsession.xsql.ctx != nil {
-		return xcc.xsession.xsql.ctx.Close()
+	if xcc.ctx != nil {
+		return xcc.ctx.Close()
 	}
 	return nil
 }
@@ -140,7 +140,7 @@ func (xcc *mysqlXClientConn) handshakeConnection() error {
 	if err = capability.DealSecCapabilitiesSet(tp, msg); err != nil {
 		return errors.Trace(err)
 	}
-	return xcc.writeError(xutil.ErXCapabilitiesPrepareFailed)
+	return xcc.writeError(xutil.ErXCapabilitiesPrepareFailed.GenByArgs("tls"))
 }
 
 func (xcc *mysqlXClientConn) handshakeSession() error {
@@ -155,9 +155,10 @@ func (xcc *mysqlXClientConn) handshakeSession() error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	xcc.xsession = CreateXSession(xcc, xcc.connectionID, ctx, xcc.pkt, xcc.server.skipAuth())
+	xcc.ctx = ctx
+	xcc.xsession = createXSession(xcc, xcc.connectionID, xcc.pkt, xcc.server.skipAuth())
 
-	xcc.xauth = *xcc.CreateAuth(xcc.connectionID)
+	xcc.xauth = *xcc.createAuth(xcc.connectionID)
 	if err := xcc.xauth.handleMessage(tp, msg); err != nil {
 		return errors.Trace(err)
 	}
@@ -188,7 +189,7 @@ func (xcc *mysqlXClientConn) handshake() error {
 			return errors.Trace(err)
 		}
 	}
-	xcc.xsession.xsql.ctx.SetSessionManager(xcc.server)
+	xcc.ctx.SetSessionManager(xcc.server)
 
 	return nil
 }
@@ -201,7 +202,7 @@ func (xcc *mysqlXClientConn) dispatch(tp Mysqlx.ClientMessages_Type, payload []b
 			return err
 		}
 	default:
-		return xcc.xsession.HandleMessage(msgType, payload)
+		return xcc.xsession.handleMessage(msgType, payload)
 	}
 
 	return nil
@@ -235,7 +236,7 @@ func (xcc *mysqlXClientConn) isKilled() bool {
 }
 
 func (xcc *mysqlXClientConn) Cancel(query bool) {
-	xcc.xsession.xsql.ctx.Cancel()
+	xcc.ctx.Cancel()
 	if !query {
 		xcc.killed = true
 	}
@@ -253,7 +254,7 @@ func (xcc *mysqlXClientConn) showProcess() util.ProcessInfo {
 func (xcc *mysqlXClientConn) useDB(db string) (err error) {
 	// if input is "use `SELECT`", mysql client just send "SELECT"
 	// so we add `` around db.
-	_, err = xcc.xsession.xsql.ctx.Execute("use `" + db + "`")
+	_, err = xcc.ctx.Execute("use `" + db + "`")
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -261,7 +262,7 @@ func (xcc *mysqlXClientConn) useDB(db string) (err error) {
 	return
 }
 
-func (xcc *mysqlXClientConn) CreateAuth(id uint32) *XAuth {
+func (xcc *mysqlXClientConn) createAuth(id uint32) *XAuth {
 	return &XAuth{
 		xcc:               xcc,
 		mState:            authenticating,
@@ -273,20 +274,20 @@ func (xcc *mysqlXClientConn) addCapability(h capability.Handler) {
 	xcc.capabilities.Capabilities = append(xcc.capabilities.Capabilities, h.Get())
 }
 
-type XSession struct {
+type xSession struct {
 	xsql *xSQL
 }
 
-func CreateXSession(xcc *mysqlXClientConn, id uint32, ctx driver.QueryCtx, pkt *xpacketio.XPacketIO, skipAuth bool) *XSession {
-	return &XSession{
-		xsql: CreateContext(xcc, ctx, pkt),
+func createXSession(xcc *mysqlXClientConn, id uint32, pkt *xpacketio.XPacketIO, skipAuth bool) *xSession {
+	return &xSession{
+		xsql: createContext(xcc, pkt),
 	}
 }
 
-func (xs *XSession) HandleMessage(msgType Mysqlx.ClientMessages_Type, payload []byte) error {
+func (xs *xSession) handleMessage(msgType Mysqlx.ClientMessages_Type, payload []byte) error {
 	switch msgType {
 	case Mysqlx.ClientMessages_SQL_STMT_EXECUTE:
-		if err := xs.xsql.DealSQLStmtExecute(payload); err != nil {
+		if err := xs.xsql.dealSQLStmtExecute(payload); err != nil {
 			return err
 		}
 		// @TODO will support in next pr

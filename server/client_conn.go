@@ -39,7 +39,7 @@ type clientConn interface {
 }
 
 func createClientConn(conn net.Conn, s *Server) clientConn {
-	switch s.typ {
+	switch s.tp {
 	case MysqlProtocol:
 		return s.newConn(conn)
 	case MysqlXProtocol:
