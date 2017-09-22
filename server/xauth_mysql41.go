@@ -39,8 +39,8 @@ type saslMysql41Auth struct {
 	xauth *XAuth
 }
 
-func (spa *saslMysql41Auth) handleStart(mechanism *string, data []byte, initial_response []byte) *Response {
-	r := Response{}
+func (spa *saslMysql41Auth) handleStart(mechanism *string, data []byte, initial_response []byte) *response {
+	r := response{}
 
 	if spa.m_state == S_starting {
 		spa.m_salt = util.RandomBuf(mysql.ScrambleLength)
@@ -58,8 +58,8 @@ func (spa *saslMysql41Auth) handleStart(mechanism *string, data []byte, initial_
 	return &r
 }
 
-func (spa *saslMysql41Auth) handleContinue(data []byte) *Response {
-	r := Response{}
+func (spa *saslMysql41Auth) handleContinue(data []byte) *response {
+	r := response{}
 
 	if spa.m_state == S_waiting_response {
 		var err *Mysqlx.Error

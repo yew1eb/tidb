@@ -57,8 +57,10 @@ func (xcc *mysqlXClientConn) Run() {
 	defer func() {
 		recover()
 		xcc.Close()
+		log.Infof("[%d] connection exit.", xcc.connectionID)
 	}()
 
+	log.Infof("[%d] establish connection successfully.")
 	for !xcc.killed {
 		tp, payload, err := xcc.pkt.ReadPacket()
 		if err != nil {
@@ -68,7 +70,7 @@ func (xcc *mysqlXClientConn) Run() {
 			}
 			return
 		}
-		log.Infof("[XUWT] dispatch msg type(%s), payload(%s)", tp, payload)
+		log.Debugf("[%d] receive msg type[%d]", xcc.connectionID, tp)
 		if err = xcc.dispatch(tp, payload); err != nil {
 			if terror.ErrorEqual(err, terror.ErrResultUndetermined) {
 				log.Errorf("[%d] result undetermined error, close this connection %s",
@@ -152,6 +154,7 @@ func (xcc *mysqlXClientConn) auth() error {
 		}
 
 		if err = xcc.xauth.handleMessage(tp, msg); err != nil {
+			log.Errorf("[%d] auth failed on x-protocol, get error %s", xcc.connectionID, err.Error())
 			xcc.writeError(err)
 			return err
 		}
@@ -284,16 +287,14 @@ func (xs *xSession) handleMessage(msgType Mysqlx.ClientMessages_Type, payload []
 	switch msgType {
 	case Mysqlx.ClientMessages_SQL_STMT_EXECUTE:
 		return xs.xsql.dealSQLStmtExecute(payload)
-		// @TODO will support in next pr
+	// @TODO will support in next pr
 	case Mysqlx.ClientMessages_CRUD_FIND, Mysqlx.ClientMessages_CRUD_INSERT, Mysqlx.ClientMessages_CRUD_UPDATE, Mysqlx.ClientMessages_CRUD_DELETE,
 		Mysqlx.ClientMessages_CRUD_CREATE_VIEW, Mysqlx.ClientMessages_CRUD_MODIFY_VIEW, Mysqlx.ClientMessages_CRUD_DROP_VIEW:
 		return xutil.ErXBadMessage
-		// @TODO will support in next pr
+	// @TODO will support in next pr
 	case Mysqlx.ClientMessages_EXPECT_OPEN, Mysqlx.ClientMessages_EXPECT_CLOSE:
 		return xutil.ErXBadMessage
 	default:
-		return errors.Errorf("unknown message type %d", msgType)
+		return xutil.ErXBadMessage
 	}
-
-	return nil
 }
