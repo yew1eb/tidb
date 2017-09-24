@@ -19,7 +19,6 @@ import (
 	"github.com/pingcap/tidb/util"
 	"github.com/pingcap/tidb/util/auth"
 	xutil "github.com/pingcap/tidb/xprotocol/util"
-	"github.com/pingcap/tipb/go-mysqlx"
 	"net"
 )
 
@@ -39,8 +38,8 @@ type saslMysql41Auth struct {
 	xauth *XAuth
 }
 
-func (spa *saslMysql41Auth) handleStart(mechanism *string, data []byte, initial_response []byte) *Response {
-	r := Response{}
+func (spa *saslMysql41Auth) handleStart(mechanism *string, data []byte, initial_response []byte) *response {
+	r := response{}
 
 	if spa.m_state == S_starting {
 		spa.m_salt = util.RandomBuf(mysql.ScrambleLength)
@@ -58,46 +57,47 @@ func (spa *saslMysql41Auth) handleStart(mechanism *string, data []byte, initial_
 	return &r
 }
 
-func (spa *saslMysql41Auth) handleContinue(data []byte) *Response {
-	r := Response{}
-
+func (spa *saslMysql41Auth) handleContinue(data []byte) *response {
 	if spa.m_state == S_waiting_response {
-		var err *Mysqlx.Error
-		//var ctx driver.QueryCtx
-
 		dbname, user, passwd := spa.extractNullTerminatedElement(data)
 		xcc := spa.xauth.xcc
 		xcc.dbname = string(dbname)
 		xcc.user = string(user)
 
+		spa.m_state = S_done
 		if !spa.xauth.xcc.server.skipAuth() {
 			// Do Auth
 			addr := spa.xauth.xcc.conn.RemoteAddr().String()
-			host, _, err1 := net.SplitHostPort(addr)
-			if err1 != nil {
-				err = xutil.ErrXAccessDenied
+			host, _, err := net.SplitHostPort(addr)
+			if err != nil {
+				return &response{
+					status: Failed,
+					data: xutil.ErrAccessDenied.ToSQLError().Message,
+					errCode: xutil.ErrAccessDenied.ToSQLError().Code,
+					}
 			}
 			if !spa.xauth.xcc.ctx.Auth(&auth.UserIdentity{Username: string(user), Hostname: host},
 				passwd, spa.m_salt) {
-				err = xutil.ErrXAccessDenied
+				return &response{
+					status: Failed,
+					data: xutil.ErrAccessDenied.ToSQLError().Message,
+					errCode: xutil.ErrAccessDenied.ToSQLError().Code,
+				}
 			}
 		}
-		if err == nil {
-			r.status = Succeeded
-			r.errCode = 0
-		} else {
-			r.status = Failed
-			r.data = err.GetMsg()
-			r.errCode = uint16(err.GetCode())
+
+		return &response{
+			status: Succeeded,
+			errCode: 0,
 		}
-		spa.m_state = S_done
 	} else {
 		spa.m_state = S_error
-		r.status = Error
-		r.errCode = mysql.ErrNetPacketsOutOfOrder
-	}
 
-	return &r
+		return &response{
+			status: Error,
+			errCode: mysql.ErrNetPacketsOutOfOrder,
+			}
+	}
 }
 
 func (spa *saslMysql41Auth) extractNullTerminatedElement(data []byte) ([]byte, []byte, []byte) {

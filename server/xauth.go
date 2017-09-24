@@ -1,3 +1,16 @@
+// Copyright 2017 PingCAP, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package server
 
 import (
@@ -58,18 +71,18 @@ func (xa *XAuth) handleReadyMessage(msgType Mysqlx.ClientMessages_Type, payload 
 }
 
 func (xa *XAuth) handleAuthMessage(msgType Mysqlx.ClientMessages_Type, payload []byte) error {
-	var r *Response
+	var r *response
 	switch msgType {
 	case Mysqlx.ClientMessages_SESS_AUTHENTICATE_START:
 		var data Mysqlx_Session.AuthenticateStart
 		if err := data.Unmarshal(payload); err != nil {
-			log.Errorf("Can't Unmarshal message %s, err %s", msgType.String(), err.Error())
+			log.Errorf("[%d] Can't Unmarshal message %s, err %s", xa.xcc.connectionID, msgType.String(), err.Error())
 			return util.ErXBadMessage
 		}
 
 		xa.authHandler = xa.createAuthHandler(*data.MechName)
 		if xa.authHandler == nil {
-			log.Errorf("Can't create XAuth handler with mech name %s", *data.MechName)
+			log.Errorf("[%d] Can't create XAuth handler with mech name %s", xa.xcc.connectionID, *data.MechName)
 			xa.stopAuth()
 			return util.ErrorMessage(mysql.ErrNotSupportedAuthMode,"Invalid authentication method "+*data.MechName)
 		}
@@ -78,6 +91,7 @@ func (xa *XAuth) handleAuthMessage(msgType Mysqlx.ClientMessages_Type, payload [
 	case Mysqlx.ClientMessages_SESS_AUTHENTICATE_CONTINUE:
 		var data Mysqlx_Session.AuthenticateContinue
 		if err := data.Unmarshal(payload); err != nil {
+			log.Errorf("[%d] Can't Unmarshal message %s, err %s", xa.xcc.connectionID, msgType.String(), err.Error())
 			return util.ErXBadMessage
 		}
 
@@ -100,14 +114,14 @@ func (xa *XAuth) handleAuthMessage(msgType Mysqlx.ClientMessages_Type, payload [
 	return nil
 }
 
-func (xa *XAuth) onAuthSuccess(r *Response) {
+func (xa *XAuth) onAuthSuccess(r *response) {
 	notice.SendClientId(xa.xcc.pkt, xa.xcc.connectionID)
 	xa.stopAuth()
 	xa.mState = ready
 	xa.sendAuthOk(&r.data)
 }
 
-func (xa *XAuth) onAuthFailure(r *Response) {
+func (xa *XAuth) onAuthFailure(r *response) {
 	xa.stopAuth()
 }
 

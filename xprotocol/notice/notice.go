@@ -14,25 +14,26 @@ import (
 	"github.com/pingcap/tipb/go-mysqlx/Resultset"
 )
 
+// notice message sent to client.
 type Notice struct {
-	noticeType NoticeType
+	noticeType noticeType
 	value      []byte
 	pkt        *xpacketio.XPacketIO
 }
 
-type NoticeType uint32
+type noticeType uint32
 
 const (
-	KNoticeWarning                NoticeType = 1
+	KNoticeWarning                noticeType = 1
 	KNoticeSessionVariableChanged            = 2
 	KNoticeSessionStateChanged               = 3
 )
 
-func (n *Notice) SendLocalNotice(forceFlush bool) error {
-	return n.SendNotice(Mysqlx_Notice.Frame_LOCAL, forceFlush)
+func (n *Notice) sendLocalNotice(forceFlush bool) error {
+	return n.sendNotice(Mysqlx_Notice.Frame_LOCAL, forceFlush)
 }
 
-func (n *Notice) SendNotice(scope Mysqlx_Notice.Frame_Scope, forceFlush bool) error {
+func (n *Notice) sendNotice(scope Mysqlx_Notice.Frame_Scope, forceFlush bool) error {
 	frameType := uint32(n.noticeType)
 	msg := Mysqlx_Notice.Frame{
 		Type:    &frameType,
@@ -49,6 +50,8 @@ func (n *Notice) SendNotice(scope Mysqlx_Notice.Frame_Scope, forceFlush bool) er
 	return nil
 }
 
+// SendNoticeOK send notice message 'ok' to client, this is different from server message ok and
+// sql statement exec message ok.
 func SendNoticeOK(pkt *xpacketio.XPacketIO, content string) error {
 	msg := Mysqlx.Ok{
 		Msg: &content,
@@ -65,10 +68,10 @@ func SendNoticeOK(pkt *xpacketio.XPacketIO, content string) error {
 		pkt:        pkt,
 	}
 
-	return notice.SendLocalNotice(false)
+	return notice.sendLocalNotice(false)
 }
 
-func SendLastInsertID(pkt *xpacketio.XPacketIO, lastID uint64) error {
+func sendLastInsertID(pkt *xpacketio.XPacketIO, lastID uint64) error {
 	param := Mysqlx_Notice.SessionStateChanged_Parameter(Mysqlx_Notice.SessionStateChanged_GENERATED_INSERT_ID)
 	scalarType := Mysqlx_Datatypes.Scalar_V_UINT
 	id := lastID
@@ -91,9 +94,10 @@ func SendLastInsertID(pkt *xpacketio.XPacketIO, lastID uint64) error {
 		pkt:        pkt,
 	}
 
-	return notice.SendLocalNotice(false)
+	return notice.sendLocalNotice(false)
 }
 
+// SendClientId send client id to client
 func SendClientId(pkt *xpacketio.XPacketIO, sessionId uint32) error {
 	param := Mysqlx_Notice.SessionStateChanged_Parameter(Mysqlx_Notice.SessionStateChanged_CLIENT_ID_ASSIGNED)
 	scalarType := Mysqlx_Datatypes.Scalar_V_UINT
@@ -117,9 +121,11 @@ func SendClientId(pkt *xpacketio.XPacketIO, sessionId uint32) error {
 		pkt:        pkt,
 	}
 
-	return notice.SendLocalNotice(false)
+	return notice.sendLocalNotice(false)
 }
 
+// WriteResultSet write result set message to client
+// @TODO this is important to performance, need to consider carefully and tuning in next pr
 func WriteResultSet(r driver.ResultSet, pkt *xpacketio.XPacketIO, alloc arena.Allocator) error {
 	defer r.Close()
 	row, err := r.Next()
@@ -189,9 +195,10 @@ func WriteResultSet(r driver.ResultSet, pkt *xpacketio.XPacketIO, alloc arena.Al
 	return nil
 }
 
+// SendExecOk send exec ok message to client, used when statement is finished.
 func SendExecOk(pkt *xpacketio.XPacketIO, lastID uint64) error {
 	if lastID > 0 {
-		if err := SendLastInsertID(pkt, lastID); err != nil {
+		if err := sendLastInsertID(pkt, lastID); err != nil {
 			return errors.Trace(err)
 		}
 	}

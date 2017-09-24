@@ -20,20 +20,28 @@ import (
 	"github.com/pingcap/tidb/util"
 )
 
+// clineConn used to communicate with user's client, It is usually dependence goroutine.
 type clientConn interface {
-	handshake() error
-
+	// start the main routine, receive message from client and reply the result set.
 	Run()
 
-	isKilled() bool
-
+	// cancel the connection.
 	Cancel(query bool)
 
+	// check the legacy of the client.
+	handshake() error
+
+	// check whether the client is killed
+	isKilled() bool
+
+	// return the connection id of the client
 	id() uint32
 
+	// return the process in fo the connection
 	showProcess() util.ProcessInfo
 }
 
+// create client connection according to the server type, mysql or x-protocol
 func createClientConn(conn net.Conn, s *Server) clientConn {
 	switch s.tp {
 	case MysqlProtocol:
@@ -41,7 +49,7 @@ func createClientConn(conn net.Conn, s *Server) clientConn {
 	case MysqlXProtocol:
 		return s.newXConn(conn)
 	default:
-		log.Errorf("can't create client connection, unknown server type %d.", s.tp)
+		log.Errorf("can't create client connection, unknown server type [%d].", s.tp)
 		return nil
 	}
 }

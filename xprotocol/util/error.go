@@ -20,12 +20,6 @@ import (
 )
 
 var (
-	ErrXBadMessage   = XErrorMessage(mysql.ErXBadMessage, "Invalid message", mysql.DefaultMySQLState)
-	ErrXNoSuchUser   = XErrorMessage(mysql.ErrNoSuchUser, "Invalid user or password", mysql.DefaultMySQLState)
-	ErrXAccessDenied = XErrorMessage(mysql.ErrAccessDenied, "Invalid user or password", mysql.DefaultMySQLState)
-)
-
-var (
 	ErXBadMessage                = ErrorMessage(mysql.ErXBadMessage, mysql.MySQLErrName[mysql.ErXBadMessage])
 	ErXCapabilitiesPrepareFailed = ErrorMessage(mysql.ErXCapabilitiesPrepareFailed, mysql.MySQLErrName[mysql.ErXCapabilitiesPrepareFailed])
 	ErrAccessDenied              = ErrorMessage(mysql.ErrAccessDenied, mysql.MySQLErrName[mysql.ErrAccessDenied])
