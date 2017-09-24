@@ -36,6 +36,9 @@ var (
 	ErrJSONUsedAsKey             = ErrorMessage(mysql.ErrJSONUsedAsKey, mysql.MySQLErrName[mysql.ErrJSONUsedAsKey])
 	ErXBadNotice                 = ErrorMessage(mysql.ErXBadNotice, mysql.MySQLErrName[mysql.ErXBadNotice])
 	ErXInvalidNamespace          = ErrorMessage(mysql.ErXInvalidNamespace, mysql.MySQLErrName[mysql.ErXInvalidNamespace])
+	ErXInvalidAdminCommand       = ErrorMessage(mysql.ErXInvalidAdminCommand, mysql.MySQLErrName[mysql.ErXInvalidAdminCommand])
+	ErXCmdNumArguments       = ErrorMessage(mysql.ErXCmdNumArguments, mysql.MySQLErrName[mysql.ErXCmdNumArguments])
+	ErXCmdArgumentType       = ErrorMessage(mysql.ErXCmdArgumentType, mysql.MySQLErrName[mysql.ErXCmdArgumentType])
 )
 
 const (
@@ -52,6 +55,9 @@ const (
 	codeErXBadInsertData                            = terror.ErrCode(mysql.ErXBadInsertData)
 	codeErXExprMissingArg                           = terror.ErrCode(mysql.ErXExprMissingArg)
 	codeErXInvalidNamespace                         = terror.ErrCode(mysql.ErXInvalidNamespace)
+	codeErXInvalidAdminCommand                      = terror.ErrCode(mysql.ErXInvalidAdminCommand)
+	codeErXCmdNumArguments                      = terror.ErrCode(mysql.ErXCmdNumArguments)
+	codeErXCmdArgumentType                      = terror.ErrCode(mysql.ErXCmdArgumentType)
 )
 
 func init() {
@@ -69,6 +75,9 @@ func init() {
 		codeErXBadInsertData:             mysql.ErXBadInsertData,
 		codeErXExprMissingArg:            mysql.ErXExprMissingArg,
 		codeErXInvalidNamespace:          mysql.ErXInvalidNamespace,
+		codeErXInvalidAdminCommand:       mysql.ErXInvalidAdminCommand,
+		codeErXCmdNumArguments:       mysql.ErXCmdNumArguments,
+		codeErXCmdArgumentType:       mysql.ErXCmdArgumentType,
 	}
 	terror.ErrClassToMySQLCodes[terror.ClassXProtocol] = xProtocolMySQLErrCodes
 }

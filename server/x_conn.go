@@ -107,8 +107,13 @@ func (xcc *mysqlXClientConn) handshakeConnection() error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	if err = capability.DealInitCapabilitiesSet(tp, msg); err != nil {
+	xcc.configCapabilities()
+	caps, err := capability.CheckCapabilitiesPrepareSetMsg(tp, msg)
+	if err != nil {
 		return errors.Trace(err)
+	}
+	for _, v := range caps {
+		xcc.addCapability(v)
 	}
 	if err = xcc.pkt.WritePacket(Mysqlx.ServerMessages_OK, []byte{}); err != nil {
 		return errors.Trace(err)
@@ -117,14 +122,9 @@ func (xcc *mysqlXClientConn) handshakeConnection() error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	if err = capability.DealCapabilitiesGet(tp, msg); err != nil {
+	if err = capability.CheckCapabilitiesGetMsg(tp, msg); err != nil {
 		return errors.Trace(err)
 	}
-
-	xcc.addCapability(&capability.HandlerAuthMechanisms{Values: []string{"MYSQL41"}})
-	xcc.addCapability(&capability.HandlerReadOnlyValue{Name: "doc.formats", Value: "text"})
-	xcc.addCapability(&capability.HandlerReadOnlyValue{Name: "node_type", Value: "mysql"})
-	xcc.addCapability(&capability.HandlerExpiredPasswords{Name: "client.pwd_expire_ok", Expired: true})
 
 	resp, err := xcc.capabilities.Marshal()
 	if err != nil {
@@ -137,7 +137,7 @@ func (xcc *mysqlXClientConn) handshakeConnection() error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	if err = capability.DealSecCapabilitiesSet(tp, msg); err != nil {
+	if err = capability.CheckCapabilitiesSetMsg(tp, msg); err != nil {
 		return errors.Trace(err)
 	}
 	return xcc.writeError(xutil.ErXCapabilitiesPrepareFailed.GenByArgs("tls"))
@@ -268,6 +268,12 @@ func (xcc *mysqlXClientConn) createAuth(id uint32) *XAuth {
 
 func (xcc *mysqlXClientConn) addCapability(h capability.Handler) {
 	xcc.capabilities.Capabilities = append(xcc.capabilities.Capabilities, h.Get())
+}
+
+func (xcc *mysqlXClientConn) configCapabilities() {
+	xcc.addCapability(&capability.HandlerAuthMechanisms{Values: []string{"MYSQL41"}})
+	xcc.addCapability(&capability.HandlerReadOnlyValue{Name: "doc.formats", Value: "text"})
+	xcc.addCapability(&capability.HandlerReadOnlyValue{Name: "node_type", Value: "mysql"})
 }
 
 type xSession struct {

@@ -42,42 +42,41 @@ const (
 
 func (xsql *xSQL) dispatchAdminCmd(msg Mysqlx_Sql.StmtExecute) error {
 	stmt := string(msg.GetStmt())
-	var err error
 	args := msg.GetArgs()
 	switch stmt {
 	case "ping":
-		err = xsql.ping(args)
+		return xsql.ping(args)
 	case "list_clients":
+		return util.ErXInvalidAdminCommand.GenByArgs(msg.GetNamespace(), stmt)
 	case "kill_client":
-		err = xsql.killClient(args)
+		return xsql.killClient(args)
 	case "create_collection":
-		err = xsql.createCollection(args)
+		return xsql.createCollection(args)
 	case "drop_collection":
-		err = xsql.dropCollection(args)
+		return xsql.dropCollection(args)
 	case "ensure_collection":
-		err = xsql.ensureCollection(args)
+		return xsql.ensureCollection(args)
 	case "create_collection_index":
-		err = xsql.createCollectionIndex(args)
+		return xsql.createCollectionIndex(args)
 	case "drop_collection_index":
-		err = xsql.dropCollectionIndex(args)
+		return xsql.dropCollectionIndex(args)
 	case "list_objects":
-		err = xsql.listObjects(args)
+		return xsql.listObjects(args)
 	case "enable_notices":
-		err = xsql.enableNotices(args)
+		return xsql.enableNotices(args)
 	case "disable_notices":
+		return util.ErXInvalidAdminCommand.GenByArgs(msg.GetNamespace(), stmt)
 	case "list_notices":
+		return util.ErXInvalidAdminCommand.GenByArgs(msg.GetNamespace(), stmt)
 	default:
-		return errors.New("unknown statement")
-	}
-	if err != nil {
-		return errors.Trace(err)
+		return util.ErXInvalidAdminCommand.GenByArgs(msg.GetNamespace(), stmt)
 	}
 	return nil
 }
 
 func (xsql *xSQL) ping(args []*Mysqlx_Datatypes.Any) error {
 	if len(args) != 0 {
-		return errors.New("not enough arguments")
+		return util.ErXCmdNumArguments.GenByArgs(0, len(args))
 	}
 	return nil
 }
@@ -87,18 +86,8 @@ func (xsql *xSQL) listClients() error {
 }
 
 func (xsql *xSQL) killClient(args []*Mysqlx_Datatypes.Any) error {
-	if len(args) != 1 {
-		return errors.New("not enough arguments")
-	}
-	if args[0].GetType() != Mysqlx_Datatypes.Any_SCALAR {
-		return errors.Errorf("wrong type, need %s, but get %s",
-			Mysqlx_Datatypes.Any_Type_name[int32(Mysqlx_Datatypes.Any_SCALAR)],
-			Mysqlx_Datatypes.Any_Type_name[int32(args[0].GetType())])
-	}
-	if args[0].GetScalar().GetType() != Mysqlx_Datatypes.Scalar_V_UINT {
-		return errors.Errorf("wrong type, need %s, but get %s",
-			Mysqlx_Datatypes.Scalar_Type_name[int32(Mysqlx_Datatypes.Scalar_V_UINT)],
-			Mysqlx_Datatypes.Scalar_Type_name[int32(args[0].GetScalar().GetType())])
+	if err := checkArgs(args, []Mysqlx_Datatypes.Scalar_Type { Mysqlx_Datatypes.Scalar_V_UINT, }); err != nil {
+		return errors.Trace(err)
 	}
 	id := args[0].GetScalar().GetVUnsignedInt()
 	xsql.xcc.server.Kill(id, false)
@@ -106,29 +95,10 @@ func (xsql *xSQL) killClient(args []*Mysqlx_Datatypes.Any) error {
 }
 
 func (xsql *xSQL) createCollectionImpl(args []*Mysqlx_Datatypes.Any) error {
-	if len(args) != 2 {
-		return errors.New("not enough arguments")
+	if err := checkArgs(args, []Mysqlx_Datatypes.Scalar_Type { Mysqlx_Datatypes.Scalar_V_STRING, Mysqlx_Datatypes.Scalar_V_STRING, }); err != nil {
+		return errors.Trace(err)
 	}
-	if args[0].GetType() != Mysqlx_Datatypes.Any_SCALAR {
-		return errors.Errorf("wrong type, need %s, but get %s",
-			Mysqlx_Datatypes.Any_Type_name[int32(Mysqlx_Datatypes.Any_SCALAR)],
-			Mysqlx_Datatypes.Any_Type_name[int32(args[0].GetType())])
-	}
-	if args[0].GetScalar().GetType() != Mysqlx_Datatypes.Scalar_V_STRING {
-		return errors.Errorf("wrong type, need %s, but get %s",
-			Mysqlx_Datatypes.Scalar_Type_name[int32(Mysqlx_Datatypes.Scalar_V_STRING)],
-			Mysqlx_Datatypes.Scalar_Type_name[int32(args[0].GetScalar().GetType())])
-	}
-	if args[1].GetType() != Mysqlx_Datatypes.Any_SCALAR {
-		return errors.Errorf("wrong type, need %s, but get %s",
-			Mysqlx_Datatypes.Any_Type_name[int32(Mysqlx_Datatypes.Any_SCALAR)],
-			Mysqlx_Datatypes.Any_Type_name[int32(args[1].GetType())])
-	}
-	if args[1].GetScalar().GetType() != Mysqlx_Datatypes.Scalar_V_STRING {
-		return errors.Errorf("wrong type, need %s, but get %s",
-			Mysqlx_Datatypes.Scalar_Type_name[int32(Mysqlx_Datatypes.Scalar_V_STRING)],
-			Mysqlx_Datatypes.Scalar_Type_name[int32(args[1].GetScalar().GetType())])
-	}
+
 	schema := string(args[0].GetScalar().GetVString().GetValue())
 	collection := string(args[1].GetScalar().GetVString().GetValue())
 
@@ -145,11 +115,7 @@ func (xsql *xSQL) createCollectionImpl(args []*Mysqlx_Datatypes.Any) error {
 }
 
 func (xsql *xSQL) createCollection(args []*Mysqlx_Datatypes.Any) error {
-	err := xsql.createCollectionImpl(args)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	return nil
+	return xsql.createCollectionImpl(args)
 }
 
 func (xsql *xSQL) ensureCollection(args []*Mysqlx_Datatypes.Any) error {
@@ -173,28 +139,8 @@ func (xsql *xSQL) ensureCollection(args []*Mysqlx_Datatypes.Any) error {
 }
 
 func (xsql *xSQL) dropCollection(args []*Mysqlx_Datatypes.Any) error {
-	if len(args) != 2 {
-		return errors.New("not enough arguments")
-	}
-	if args[0].GetType() != Mysqlx_Datatypes.Any_SCALAR {
-		return errors.Errorf("wrong type, need %s, but get %s",
-			Mysqlx_Datatypes.Any_Type_name[int32(Mysqlx_Datatypes.Any_SCALAR)],
-			Mysqlx_Datatypes.Any_Type_name[int32(args[0].GetType())])
-	}
-	if args[0].GetScalar().GetType() != Mysqlx_Datatypes.Scalar_V_STRING {
-		return errors.Errorf("wrong type, need %s, but get %s",
-			Mysqlx_Datatypes.Scalar_Type_name[int32(Mysqlx_Datatypes.Scalar_V_STRING)],
-			Mysqlx_Datatypes.Scalar_Type_name[int32(args[0].GetScalar().GetType())])
-	}
-	if args[1].GetType() != Mysqlx_Datatypes.Any_SCALAR {
-		return errors.Errorf("wrong type, need %s, but get %s",
-			Mysqlx_Datatypes.Any_Type_name[int32(Mysqlx_Datatypes.Any_SCALAR)],
-			Mysqlx_Datatypes.Any_Type_name[int32(args[1].GetType())])
-	}
-	if args[1].GetScalar().GetType() != Mysqlx_Datatypes.Scalar_V_STRING {
-		return errors.Errorf("wrong type, need %s, but get %s",
-			Mysqlx_Datatypes.Scalar_Type_name[int32(Mysqlx_Datatypes.Scalar_V_STRING)],
-			Mysqlx_Datatypes.Scalar_Type_name[int32(args[1].GetScalar().GetType())])
+	if err := checkArgs(args, []Mysqlx_Datatypes.Scalar_Type { Mysqlx_Datatypes.Scalar_V_STRING, Mysqlx_Datatypes.Scalar_V_STRING, }); err != nil {
+		return errors.Trace(err)
 	}
 	schema := string(args[0].GetScalar().GetVString().GetValue())
 	collection := string(args[1].GetScalar().GetVString().GetValue())
@@ -206,10 +152,7 @@ func (xsql *xSQL) dropCollection(args []*Mysqlx_Datatypes.Any) error {
 	}
 	sql := "DROP TABLE " + util.QuoteIdentifier(schema) + "." + util.QuoteIdentifier(collection)
 	log.Infof("DropCollection: %s", collection)
-	if err := xsql.executeStmtNoResult(sql); err != nil {
-		return errors.Trace(err)
-	}
-	return nil
+	return xsql.executeStmtNoResult(sql)
 }
 
 func (xsql *xSQL) createCollectionIndex(args []*Mysqlx_Datatypes.Any) error {
@@ -221,28 +164,8 @@ func (xsql *xSQL) dropCollectionIndex(args []*Mysqlx_Datatypes.Any) error {
 }
 
 func (xsql *xSQL) listObjects(args []*Mysqlx_Datatypes.Any) error {
-	if len(args) != 2 {
-		return errors.New("not enough arguments")
-	}
-	if args[0].GetType() != Mysqlx_Datatypes.Any_SCALAR {
-		return errors.Errorf("wrong type, need %s, but get %s",
-			Mysqlx_Datatypes.Any_Type_name[int32(Mysqlx_Datatypes.Any_SCALAR)],
-			Mysqlx_Datatypes.Any_Type_name[int32(args[0].GetType())])
-	}
-	if args[0].GetScalar().GetType() != Mysqlx_Datatypes.Scalar_V_STRING {
-		return errors.Errorf("wrong type, need %s, but get %s",
-			Mysqlx_Datatypes.Scalar_Type_name[int32(Mysqlx_Datatypes.Scalar_V_STRING)],
-			Mysqlx_Datatypes.Scalar_Type_name[int32(args[0].GetScalar().GetType())])
-	}
-	if args[1].GetType() != Mysqlx_Datatypes.Any_SCALAR {
-		return errors.Errorf("wrong type, need %s, but get %s",
-			Mysqlx_Datatypes.Any_Type_name[int32(Mysqlx_Datatypes.Any_SCALAR)],
-			Mysqlx_Datatypes.Any_Type_name[int32(args[1].GetType())])
-	}
-	if args[1].GetScalar().GetType() != Mysqlx_Datatypes.Scalar_V_STRING {
-		return errors.Errorf("wrong type, need %s, but get %s",
-			Mysqlx_Datatypes.Scalar_Type_name[int32(Mysqlx_Datatypes.Scalar_V_STRING)],
-			Mysqlx_Datatypes.Scalar_Type_name[int32(args[1].GetScalar().GetType())])
+	if err := checkArgs(args, []Mysqlx_Datatypes.Scalar_Type { Mysqlx_Datatypes.Scalar_V_STRING, Mysqlx_Datatypes.Scalar_V_STRING, }); err != nil {
+		return errors.Trace(err)
 	}
 	schema := string(args[0].GetScalar().GetVString().GetValue())
 	pattern := string(args[1].GetScalar().GetVString().GetValue())
@@ -278,16 +201,13 @@ func (xsql *xSQL) listObjects(args []*Mysqlx_Datatypes.Any) error {
 	}
 
 	sql += " GROUP BY name ORDER BY name"
-	if err := xsql.executeStmt(sql); err != nil {
-		return errors.Trace(err)
-	}
-	return nil
+	return xsql.executeStmt(sql)
 }
 
 func (xsql *xSQL) enableNotices(args []*Mysqlx_Datatypes.Any) error {
 	enableWarning := false
-	for _, v := range args {
-		if err := isString(v); err != nil {
+	for i, v := range args {
+		if err := isString(v, i); err != nil {
 			return errors.Trace(err)
 		}
 		notice := string(v.GetScalar().GetVString().GetValue())
@@ -316,10 +236,7 @@ func (xsql *xSQL) isSchemaSelectedAndExists(schema string) error {
 	if len(schema) != 0 {
 		sql = sql + " FROM " + util.QuoteIdentifier(schema)
 	}
-	if err := xsql.executeStmtNoResult(sql); err != nil {
-		return errors.Trace(err)
-	}
-	return nil
+	return xsql.executeStmtNoResult(sql)
 }
 
 
@@ -336,8 +253,7 @@ func (xsql *xSQL) isCollection(schema string, collection string) (bool, error) {
 	if err != nil {
 		return false, errors.Trace(err)
 	}
-	if len(rs) != 1 {
-		var name string
+	if len(rs) != 1 { var name string
 		if len(schema) != 0 {
 			name = schema + "." + collection
 		} else {
@@ -350,25 +266,15 @@ func (xsql *xSQL) isCollection(schema string, collection string) (bool, error) {
 	}
 
 	return true, nil
-	// TODO: need to fetch sql result to determine is collection or not.
+	// TODO: need to fetch sql result to determine that the table is collection or not.
 	//defer rs[0].Close()
 	//row, err := rs[0].Next()
 	//cols, err := rs[0].Columns()
 	//rowData, err := rowToRow(xsql.xcc.alloc, cols, row)
 }
 
-func isString(any *Mysqlx_Datatypes.Any) error {
-	if any.GetType() != Mysqlx_Datatypes.Any_SCALAR {
-		return errors.Errorf("wrong type, need %s, but get %s",
-			Mysqlx_Datatypes.Any_Type_name[int32(Mysqlx_Datatypes.Any_SCALAR)],
-			Mysqlx_Datatypes.Any_Type_name[int32(any.GetType())])
-	}
-	if any.GetScalar().GetType() != Mysqlx_Datatypes.Scalar_V_STRING {
-		return errors.Errorf("wrong type, need %s, but get %s",
-			Mysqlx_Datatypes.Scalar_Type_name[int32(Mysqlx_Datatypes.Scalar_V_STRING)],
-			Mysqlx_Datatypes.Scalar_Type_name[int32(any.GetScalar().GetType())])
-	}
-	return nil
+func isString(any *Mysqlx_Datatypes.Any, pos int) error {
+	return checkScalarArg(any, pos, Mysqlx_Datatypes.Scalar_V_STRING)
 }
 
 var fixedNoticeNames = [4]string{"account_expired", "generated_insert_id", "rows_affected", "produced_message"}
@@ -380,4 +286,24 @@ func isFixedNoticeName(name string) error {
 		}
 	}
 	return util.ErXBadNotice
+}
+
+func checkArgs(args []*Mysqlx_Datatypes.Any, expects []Mysqlx_Datatypes.Scalar_Type) error {
+	if len(args) != len(expects) {
+		return util.ErXCmdNumArguments.GenByArgs(len(expects), len(args))
+	}
+	for i, v := range args {
+		return checkScalarArg(v, i, expects[i])
+	}
+	return nil
+}
+
+func checkScalarArg(arg *Mysqlx_Datatypes.Any, pos int, expectType Mysqlx_Datatypes.Scalar_Type) error {
+	if arg.GetType() != Mysqlx_Datatypes.Any_SCALAR {
+		return util.ErXCmdArgumentType.GenByArgs(arg.String(), pos, expectType.String())
+	}
+	if arg.GetScalar().GetType() != expectType {
+		return util.ErXCmdArgumentType.GenByArgs(arg.GetScalar().String(), pos, expectType)
+	}
+	return nil
 }

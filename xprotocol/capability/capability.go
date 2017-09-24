@@ -14,55 +14,60 @@
 package capability
 
 import (
+	log "github.com/Sirupsen/logrus"
 	"github.com/juju/errors"
-	"github.com/pingcap/tidb/mysql"
 	"github.com/pingcap/tidb/xprotocol/util"
 	"github.com/pingcap/tipb/go-mysqlx"
 	"github.com/pingcap/tipb/go-mysqlx/Connection"
 	"github.com/pingcap/tipb/go-mysqlx/Datatypes"
 )
 
-// DealInitCapabilitiesSet deals the initial capabilities set message of client.
-func DealInitCapabilitiesSet(tp Mysqlx.ClientMessages_Type, msg []byte) error {
+// CheckCapabilitiesPrepareSetMsg deals the initial capabilities set message of client.
+func CheckCapabilitiesPrepareSetMsg(tp Mysqlx.ClientMessages_Type, msg []byte) ([]Handler, error) {
 	if tp != Mysqlx.ClientMessages_CON_CAPABILITIES_SET {
-		return errors.New("bad capabilities set")
+		log.Infof("Invalid message %d received during client initialization", tp.String())
+		return nil, util.ErXBadMessage
 	}
 	var set Mysqlx_Connection.CapabilitiesSet
 	if err := set.Unmarshal(msg); err != nil {
-		return errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
 	if set.GetCapabilities() == nil {
-		return errors.New("bad capabilities set")
+		return nil, errors.New("bad capabilities set")
 	}
 	caps := set.GetCapabilities().GetCapabilities()
 	if caps == nil {
-		return errors.New("bad capabilities set")
+		return nil, errors.New("bad capabilities set")
 	}
 	if caps[0].GetName() != "client.pwd_expire_ok" {
-		return errors.New("bad capabilities set")
+		return nil, errors.New("bad capabilities set")
 	}
 	if caps[0].GetValue().GetType() != Mysqlx_Datatypes.Any_SCALAR {
-		return errors.New("bad capabilities set")
+		return nil, errors.New("bad capabilities set")
 	}
 	if caps[0].GetValue().GetScalar().GetType() != Mysqlx_Datatypes.Scalar_V_BOOL {
-		return errors.New("bad capabilities set")
+		return nil, errors.New("bad capabilities set")
 	}
 	if !caps[0].GetValue().GetScalar().GetVBool() {
-		return errors.New("bad capabilities set")
+		return nil, errors.New("bad capabilities set")
 	}
-	return nil
+	return []Handler{
+		&HandlerExpiredPasswords{
+			Name: "client.pwd_expire_ok",
+			Expired: true},
+			}, nil
 }
 
-// DealCapabilitiesGet deals capabilities get message, get message content will always be empty.
-func DealCapabilitiesGet(tp Mysqlx.ClientMessages_Type, _ []byte) error {
+// CheckCapabilitiesGetMsg deals capabilities get message, get message content will always be empty.
+func CheckCapabilitiesGetMsg(tp Mysqlx.ClientMessages_Type, _ []byte) error {
 	if tp != Mysqlx.ClientMessages_CON_CAPABILITIES_GET {
 		return errors.New("bad capabilities get")
 	}
 	return nil
 }
 
-// DealSecCapabilitiesSet deals the second capabilities set message.
-func DealSecCapabilitiesSet(tp Mysqlx.ClientMessages_Type, msg []byte) error {
+// CheckCapabilitiesSetMsg deals the second capabilities set message.
+func CheckCapabilitiesSetMsg(tp Mysqlx.ClientMessages_Type, msg []byte) error {
 	if tp != Mysqlx.ClientMessages_CON_CAPABILITIES_SET {
 		return errors.New("bad capabilities set")
 	}
@@ -90,9 +95,4 @@ func DealSecCapabilitiesSet(tp Mysqlx.ClientMessages_Type, msg []byte) error {
 		return errors.New("bad capabilities set")
 	}
 	return nil
-}
-
-// CapabilityErrorReport reports capabilities error.
-func CapabilityErrorReport() *Mysqlx.Error {
-	return util.XErrorMessage(5001, "Capability prepare failed for 'tls'", mysql.DefaultMySQLState)
 }
