@@ -41,7 +41,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/juju/errors"
 	"github.com/pingcap/tidb/config"
-	"github.com/pingcap/tidb/driver"
 	"github.com/pingcap/tidb/mysql"
 	"github.com/pingcap/tidb/sessionctx/variable"
 	"github.com/pingcap/tidb/terror"
@@ -83,7 +82,7 @@ const (
 type Server struct {
 	cfg               *config.Config
 	tlsConfig         *tls.Config
-	driver            driver.IDriver
+	driver            IDriver
 	listener          net.Listener
 	rwlock            *sync.RWMutex
 	concurrentLimiter *TokenLimiter
@@ -156,7 +155,7 @@ func (s *Server) skipAuth() bool {
 const tokenLimit = 1000
 
 // NewServer creates a new Server.
-func NewServer(cfg *config.Config, driver driver.IDriver, serverType int) (*Server, error) {
+func NewServer(cfg *config.Config, driver IDriver, serverType int) (*Server, error) {
 	s := &Server{
 		cfg:               cfg,
 		driver:            driver,

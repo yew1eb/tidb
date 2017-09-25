@@ -29,7 +29,6 @@ import (
 	"github.com/pingcap/tidb"
 	"github.com/pingcap/tidb/config"
 	"github.com/pingcap/tidb/ddl"
-	"github.com/pingcap/tidb/driver"
 	"github.com/pingcap/tidb/kv"
 	"github.com/pingcap/tidb/plan"
 	"github.com/pingcap/tidb/privilege/privileges"
@@ -168,8 +167,8 @@ func main() {
 		log.Fatal(errors.ErrorStack(err))
 	}
 
-	var tidbDriver driver.IDriver
-	tidbDriver = driver.NewTiDBDriver(store)
+	var tidbDriver server.IDriver
+	tidbDriver = server.NewTiDBDriver(store)
 	var svr *server.Server
 	svr, err = server.NewServer(cfg, tidbDriver, server.MysqlProtocol)
 	if err != nil {

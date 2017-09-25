@@ -19,7 +19,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/juju/errors"
-	"github.com/pingcap/tidb/driver"
 	"github.com/pingcap/tidb/mysql"
 	"github.com/pingcap/tidb/terror"
 	"github.com/pingcap/tidb/util"
@@ -48,7 +47,7 @@ type mysqlXClientConn struct {
 	salt         []byte                         // random bytes used for authentication.
 	alloc        arena.Allocator                // an memory allocator for reducing memory allocation.
 	lastCmd      string                         // latest sql query string, currently used for logging error.
-	ctx          driver.QueryCtx                // an interface to execute sql statements.
+	ctx          QueryCtx                // an interface to execute sql statements.
 	attrs        map[string]string              // attributes parsed from client handshake response, not used for now.
 	killed       bool
 }
@@ -285,7 +284,7 @@ type xSession struct {
 
 func (xcc *mysqlXClientConn) createXSession() *xSession {
 	return &xSession{
-		xsql: createContext(xcc),
+		xsql: createXSQL(xcc),
 	}
 }
 

@@ -15,20 +15,24 @@ package server
 
 import (
 	"github.com/juju/errors"
-	"github.com/pingcap/tidb/driver"
+	"github.com/pingcap/tidb/mysql"
+	"github.com/pingcap/tidb/util/arena"
+	"github.com/pingcap/tidb/util/types"
 	"github.com/pingcap/tidb/xprotocol/notice"
-	"github.com/pingcap/tidb/xprotocol/xpacketio"
-	"github.com/pingcap/tipb/go-mysqlx/Sql"
 	"github.com/pingcap/tidb/xprotocol/util"
+	"github.com/pingcap/tidb/xprotocol/xpacketio"
+	"github.com/pingcap/tipb/go-mysqlx"
+	"github.com/pingcap/tipb/go-mysqlx/Resultset"
+	"github.com/pingcap/tipb/go-mysqlx/Sql"
 )
 
 type xSQL struct {
 	xcc *mysqlXClientConn
-	ctx *driver.QueryCtx
+	ctx *QueryCtx
 	pkt *xpacketio.XPacketIO
 }
 
-func createContext(xcc *mysqlXClientConn) *xSQL {
+func createXSQL(xcc *mysqlXClientConn) *xSQL {
 	return &xSQL{
 		xcc: xcc,
 		ctx: &xcc.ctx,
@@ -56,7 +60,7 @@ func (xsql *xSQL) dealSQLStmtExecute(payload []byte) error {
 	default:
 		return util.ErXInvalidNamespace.GenByArgs(msg.GetNamespace())
 	}
-	return notice.SendExecOk(xsql.pkt, (*xsql.ctx).LastInsertID())
+	return SendExecOk(xsql.pkt, (*xsql.ctx).LastInsertID())
 }
 
 func (xsql *xSQL) executeStmtNoResult(sql string) error {
@@ -72,9 +76,110 @@ func (xsql *xSQL) executeStmt(sql string) error {
 		return err
 	}
 	for _, r := range rs {
-		if err := notice.WriteResultSet(r, xsql.pkt, xsql.xcc.alloc); err != nil {
+		if err := WriteResultSet(r, xsql.pkt, xsql.xcc.alloc); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// WriteResultSet write result set message to client
+// @TODO this is important to performance, need to consider carefully and tuning in next pr
+func WriteResultSet(r ResultSet, pkt *xpacketio.XPacketIO, alloc arena.Allocator) error {
+	defer r.Close()
+	row, err := r.Next()
+	if err != nil {
+		return errors.Trace(err)
+	}
+	cols, err := r.Columns()
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Write column information.
+	for _, c := range cols {
+		tp, err := util.MysqlType2XType(c.Type, mysql.HasUnsignedFlag(uint(c.Flag)))
+		if err != nil {
+			return errors.Trace(err)
+		}
+		flags := uint32(c.Flag)
+		columnMeta := Mysqlx_Resultset.ColumnMetaData{
+			Type:          &tp,
+			Name:          []byte(c.Name),
+			Table:         []byte(c.OrgName),
+			OriginalTable: []byte(c.OrgTable),
+			Schema:        []byte(c.Schema),
+			Length:        &c.ColumnLength,
+			Flags:         &flags,
+		}
+		data, err := columnMeta.Marshal()
+		if err != nil {
+			return errors.Trace(err)
+		}
+		if err := pkt.WritePacket(Mysqlx.ServerMessages_RESULTSET_COLUMN_META_DATA, data); err != nil {
+			return errors.Trace(err)
+		}
+	}
+
+	// Write rows.
+	for {
+		if err != nil {
+			return errors.Trace(err)
+		}
+		if row == nil {
+			break
+		}
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		rowData, err := rowToRow(alloc, cols, row)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		data, err := rowData.Marshal()
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		if err := pkt.WritePacket(Mysqlx.ServerMessages_RESULTSET_ROW, data); err != nil {
+			return errors.Trace(err)
+		}
+		row, err = r.Next()
+	}
+
+	if err := pkt.WritePacket(Mysqlx.ServerMessages_RESULTSET_FETCH_DONE, []byte{}); err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+// SendExecOk send exec ok message to client, used when statement is finished.
+func SendExecOk(pkt *xpacketio.XPacketIO, lastID uint64) error {
+	if lastID > 0 {
+		if err := notice.SendLastInsertID(pkt, lastID); err != nil {
+			return errors.Trace(err)
+		}
+	}
+	if err := pkt.WritePacket(Mysqlx.ServerMessages_SQL_STMT_EXECUTE_OK, nil); err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+func rowToRow(alloc arena.Allocator, columns []*ColumnInfo, row []types.Datum) (*Mysqlx_Resultset.Row, error) {
+	if len(columns) != len(row) {
+		return nil, mysql.ErrMalformPacket
+	}
+	var fields [][]byte
+	for i, val := range row {
+		datum, err := dumpDatumToBinary(alloc, columns[i], val)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+		fields = append(fields, datum)
+	}
+	return &Mysqlx_Resultset.Row{
+		Field: fields,
+	}, nil
 }

@@ -40,7 +40,6 @@ import (
 	"strconv"
 
 	"github.com/juju/errors"
-	"github.com/pingcap/tidb/driver"
 	"github.com/pingcap/tidb/mysql"
 	"github.com/pingcap/tidb/util/hack"
 )
@@ -55,11 +54,11 @@ func (cc *mysqlClientConn) handleStmtPrepare(sql string) error {
 	//status ok
 	data = append(data, 0)
 	//stmt id
-	data = append(data, driver.DumpUint32(uint32(stmt.ID()))...)
+	data = append(data, dumpUint32(uint32(stmt.ID()))...)
 	//number columns
-	data = append(data, driver.DumpUint16(uint16(len(columns)))...)
+	data = append(data, dumpUint16(uint16(len(columns)))...)
 	//number params
-	data = append(data, driver.DumpUint16(uint16(len(params)))...)
+	data = append(data, dumpUint16(uint16(len(params)))...)
 	//filter [00]
 	data = append(data, 0)
 	//warning count
@@ -291,7 +290,7 @@ func parseStmtArgs(args []interface{}, boundParams [][]byte, nullBitmap, paramTy
 				return
 			}
 
-			v, isNull, n, err = driver.ParseLengthEncodedBytes(paramValues[pos:])
+			v, isNull, n, err = parseLengthEncodedBytes(paramValues[pos:])
 			pos += n
 			if err != nil {
 				return
