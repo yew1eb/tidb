@@ -153,6 +153,7 @@ func (w *GCWorker) tick(ctx goctx.Context) {
 			log.Warnf("[gc worker] leader tick err: %v", err)
 		}
 	} else {
+		log.Info("not leader")
 		// Config metrics should always be updated by leader, set them to 0 when current instance is not leader.
 		gcConfigGauge.WithLabelValues(gcRunIntervalKey).Set(0)
 		gcConfigGauge.WithLabelValues(gcLifeTimeKey).Set(0)
@@ -178,22 +179,22 @@ func (w *GCWorker) storeIsBootstrapped() bool {
 
 // Leader of GC worker checks if it should start a GC job every tick.
 func (w *GCWorker) leaderTick(ctx goctx.Context) error {
-	log.Info("enter leaderTick")
+	log.Info("gc worker: enter leaderTick")
 	if w.gcIsRunning {
-		log.Info("exit leaderTick because gcIsRunning")
+		log.Info("gc worker: exit leaderTick because gcIsRunning")
 		return nil
 	}
 
 	ok, safePoint, err := w.prepare()
 	if err != nil || !ok {
-		log.Info("exit leaderTick because prepare error:", err)
+		log.Infof("exit leaderTick because prepare error %v or not ok: %v", err, ok)
 		return errors.Trace(err)
 	}
 
 	// When the worker is just started, or an old GC job has just finished,
 	// wait a while before starting a new job.
 	if time.Since(w.lastFinish) < gcWaitTime {
-		log.Info("exit leaderTick because lastFinish < gcWaitTime")
+		log.Infof("exit leaderTick because time.Since(lastFinish)(%v) < gcWaitTime(%v)", time.Since(w.lastFinish), gcWaitTime)
 		return nil
 	}
 
@@ -223,6 +224,7 @@ func (w *GCWorker) prepare() (bool, uint64, error) {
 	}
 	err = w.saveTime(gcLastRunTimeKey, now)
 	if err != nil {
+		log.Info("prepare save gcLastRunTimeKey error:", err)
 		return false, 0, errors.Trace(err)
 	}
 	err = w.saveTime(gcSafePointKey, *newSafePoint)
@@ -253,7 +255,7 @@ func (w *GCWorker) checkGCInterval(now time.Time) (bool, error) {
 		return false, errors.Trace(err)
 	}
 	if lastRun != nil && lastRun.Add(*runInterval).After(now) {
-		log.Infof("lastRun (%v) plus runInterval (%v) should be after now (%v)", lastRun, *runInterval, time.Now())
+		log.Infof("[checkGCInterval]lastRun (%v) plus runInterval (%v) should be less than now (%v)", lastRun, *runInterval, time.Now())
 		return false, nil
 	}
 	return true, nil

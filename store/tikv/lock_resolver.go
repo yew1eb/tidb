@@ -27,7 +27,7 @@ import (
 	goctx "golang.org/x/net/context"
 )
 
-const resolvedCacheSize = 512
+const resolvedCacheSize = 102400
 
 // LockResolver resolves locks and also caches resolved txn status.
 type LockResolver struct {
