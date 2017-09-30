@@ -76,7 +76,7 @@ func numericContextResultType(ft *types.FieldType) types.EvalType {
 
 // setFlenDecimal4Int is called to set proper `Flen` and `Decimal` of return
 // type according to the two input parameter's types.
-func setFlenDecimal4Int(retTp, a, b *types.FieldType) {
+func setFlenDecimal4Int(retTp *types.FieldType) {
 	retTp.Decimal = 0
 	retTp.Flen = mysql.MaxIntWidth
 }
@@ -157,7 +157,7 @@ func (c *arithmeticPlusFunctionClass) getFunction(ctx context.Context, args []Ex
 		if mysql.HasUnsignedFlag(args[0].GetType().Flag) || mysql.HasUnsignedFlag(args[1].GetType().Flag) {
 			bf.tp.Flag |= mysql.UnsignedFlag
 		}
-		setFlenDecimal4Int(bf.tp, args[0].GetType(), args[1].GetType())
+		setFlenDecimal4Int(bf.tp)
 		sig := &builtinArithmeticPlusIntSig{bf}
 		sig.setPbCode(tipb.ScalarFuncSig_PlusInt)
 		return sig.setSelf(sig), nil
@@ -278,7 +278,7 @@ func (c *arithmeticMinusFunctionClass) getFunction(ctx context.Context, args []E
 		return sig.setSelf(sig), nil
 	} else {
 		bf := newBaseBuiltinFuncWithTp(ctx, args, types.ETInt, types.ETInt, types.ETInt)
-		setFlenDecimal4Int(bf.tp, args[0].GetType(), args[1].GetType())
+		setFlenDecimal4Int(bf.tp)
 		if mysql.HasUnsignedFlag(args[0].GetType().Flag) || mysql.HasUnsignedFlag(args[1].GetType().Flag) {
 			bf.tp.Flag |= mysql.UnsignedFlag
 		}
@@ -401,12 +401,12 @@ func (c *arithmeticMultiplyFunctionClass) getFunction(ctx context.Context, args 
 		bf := newBaseBuiltinFuncWithTp(ctx, args, types.ETInt, types.ETInt, types.ETInt)
 		if mysql.HasUnsignedFlag(lhsTp.Flag) || mysql.HasUnsignedFlag(rhsTp.Flag) {
 			bf.tp.Flag |= mysql.UnsignedFlag
-			setFlenDecimal4Int(bf.tp, args[0].GetType(), args[1].GetType())
+			setFlenDecimal4Int(bf.tp)
 			sig := &builtinArithmeticMultiplyIntUnsignedSig{bf}
 			sig.setPbCode(tipb.ScalarFuncSig_MultiplyInt)
 			return sig.setSelf(sig), nil
 		}
-		setFlenDecimal4Int(bf.tp, args[0].GetType(), args[1].GetType())
+		setFlenDecimal4Int(bf.tp)
 		sig := &builtinArithmeticMultiplyIntSig{bf}
 		sig.setPbCode(tipb.ScalarFuncSig_MultiplyInt)
 		return sig.setSelf(sig), nil

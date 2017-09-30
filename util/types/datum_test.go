@@ -525,7 +525,7 @@ func (ts *testDatumSuite) TestComputeMod(c *C) {
 	}
 
 	for ith, tt := range tests {
-		got, err := ComputeMod(sc, tt.a, tt.b)
+		got, err := ComputeMod(tt.a, tt.b)
 		c.Assert(err != nil, Equals, tt.hasErr)
 		v, err := got.CompareDatum(sc, &tt.expect)
 		c.Assert(err, IsNil)

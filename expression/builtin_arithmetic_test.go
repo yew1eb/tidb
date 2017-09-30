@@ -63,25 +63,21 @@ func (s *testEvaluatorSuite) TestSetFlenDecimal4Int(c *C) {
 	defer testleak.AfterTest(c)()
 
 	ret := &types.FieldType{}
-	a := &types.FieldType{
-		Decimal: 1,
-		Flen:    3,
-	}
 	b := &types.FieldType{
 		Decimal: 0,
 		Flen:    2,
 	}
-	setFlenDecimal4Int(ret, a, b)
+	setFlenDecimal4Int(ret)
 	c.Assert(ret.Decimal, Equals, 0)
 	c.Assert(ret.Flen, Equals, mysql.MaxIntWidth)
 
 	b.Flen = mysql.MaxIntWidth + 1
-	setFlenDecimal4Int(ret, a, b)
+	setFlenDecimal4Int(ret)
 	c.Assert(ret.Decimal, Equals, 0)
 	c.Assert(ret.Flen, Equals, mysql.MaxIntWidth)
 
 	b.Flen = types.UnspecifiedLength
-	setFlenDecimal4Int(ret, a, b)
+	setFlenDecimal4Int(ret)
 	c.Assert(ret.Decimal, Equals, 0)
 	c.Assert(ret.Flen, Equals, mysql.MaxIntWidth)
 }

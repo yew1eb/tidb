@@ -252,7 +252,7 @@ func ComputeDiv(sc *variable.StatementContext, a, b Datum) (d Datum, err error) 
 }
 
 // ComputeMod computes the result of a mod b.
-func ComputeMod(sc *variable.StatementContext, a, b Datum) (d Datum, err error) {
+func ComputeMod(a, b Datum) (d Datum, err error) {
 	switch a.Kind() {
 	case KindInt64:
 		x := a.GetInt64()

@@ -430,7 +430,7 @@ func (d *Datum) CompareDatum(sc *variable.StatementContext, ad *Datum) (int, err
 	case KindMysqlSet:
 		return d.compareMysqlSet(sc, ad.GetMysqlSet())
 	case KindMysqlJSON:
-		return d.compareMysqlJSON(sc, ad.GetMysqlJSON())
+		return d.compareMysqlJSON(ad.GetMysqlJSON())
 	case KindMysqlTime:
 		return d.compareMysqlTime(sc, ad.GetMysqlTime())
 	default:
@@ -603,7 +603,7 @@ func (d *Datum) compareMysqlSet(sc *variable.StatementContext, set Set) (int, er
 	}
 }
 
-func (d *Datum) compareMysqlJSON(sc *variable.StatementContext, target json.JSON) (int, error) {
+func (d *Datum) compareMysqlJSON(target json.JSON) (int, error) {
 	origin, err := d.ToMysqlJSON()
 	if err != nil {
 		return 0, errors.Trace(err)
@@ -644,9 +644,9 @@ func (d *Datum) ConvertTo(sc *variable.StatementContext, target *FieldType) (Dat
 	case mysql.TypeTimestamp:
 		return d.convertToMysqlTimestamp(sc, target)
 	case mysql.TypeDatetime, mysql.TypeDate, mysql.TypeNewDate:
-		return d.convertToMysqlTime(sc, target)
+		return d.convertToMysqlTime(target)
 	case mysql.TypeDuration:
-		return d.convertToMysqlDuration(sc, target)
+		return d.convertToMysqlDuration(target)
 	case mysql.TypeNewDecimal:
 		return d.convertToMysqlDecimal(sc, target)
 	case mysql.TypeYear:
@@ -658,7 +658,7 @@ func (d *Datum) ConvertTo(sc *variable.StatementContext, target *FieldType) (Dat
 	case mysql.TypeSet:
 		return d.convertToMysqlSet(sc, target)
 	case mysql.TypeJSON:
-		return d.convertToMysqlJSON(sc, target)
+		return d.convertToMysqlJSON()
 	case mysql.TypeNull:
 		return Datum{}, nil
 	default:
@@ -923,7 +923,7 @@ func (d *Datum) convertToMysqlTimestamp(sc *variable.StatementContext, target *F
 	return ret, nil
 }
 
-func (d *Datum) convertToMysqlTime(sc *variable.StatementContext, target *FieldType) (Datum, error) {
+func (d *Datum) convertToMysqlTime(target *FieldType) (Datum, error) {
 	tp := target.Tp
 	fsp := DefaultFsp
 	if target.Decimal != UnspecifiedLength {
@@ -967,7 +967,7 @@ func (d *Datum) convertToMysqlTime(sc *variable.StatementContext, target *FieldT
 	return ret, nil
 }
 
-func (d *Datum) convertToMysqlDuration(sc *variable.StatementContext, target *FieldType) (Datum, error) {
+func (d *Datum) convertToMysqlDuration(target *FieldType) (Datum, error) {
 	tp := target.Tp
 	fsp := DefaultFsp
 	if target.Decimal != UnspecifiedLength {
@@ -1184,7 +1184,7 @@ func (d *Datum) convertToMysqlSet(sc *variable.StatementContext, target *FieldTy
 	return ret, nil
 }
 
-func (d *Datum) convertToMysqlJSON(sc *variable.StatementContext, target *FieldType) (ret Datum, err error) {
+func (d *Datum) convertToMysqlJSON() (ret Datum, err error) {
 	switch d.k {
 	case KindString, KindBytes:
 		var j json.JSON

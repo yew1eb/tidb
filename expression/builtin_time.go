@@ -2245,7 +2245,7 @@ func (du *baseDateArithmitical) getIntervalFromString(ctx context.Context, args 
 	return interval, false, nil
 }
 
-func (du *baseDateArithmitical) getIntervalFromInt(ctx context.Context, args []Expression, row []types.Datum, unit string) (string, bool, error) {
+func (du *baseDateArithmitical) getIntervalFromInt(ctx context.Context, args []Expression, row []types.Datum) (string, bool, error) {
 	interval, isNull, err := args[1].EvalInt(row, ctx.GetSessionVars().StmtCtx)
 	if isNull || err != nil {
 		return "", true, errors.Trace(err)
@@ -2405,7 +2405,7 @@ func (b *builtinAddDateStringIntSig) evalTime(row []types.Datum) (types.Time, bo
 		return types.Time{}, true, errors.Trace(err)
 	}
 
-	interval, isNull, err := b.getIntervalFromInt(b.ctx, b.args, row, unit)
+	interval, isNull, err := b.getIntervalFromInt(b.ctx, b.args, row)
 	if isNull || err != nil {
 		return types.Time{}, true, errors.Trace(err)
 	}
@@ -2463,7 +2463,7 @@ func (b *builtinAddDateIntIntSig) evalTime(row []types.Datum) (types.Time, bool,
 		return types.Time{}, true, errors.Trace(err)
 	}
 
-	interval, isNull, err := b.getIntervalFromInt(b.ctx, b.args, row, unit)
+	interval, isNull, err := b.getIntervalFromInt(b.ctx, b.args, row)
 	if isNull || err != nil {
 		return types.Time{}, true, errors.Trace(err)
 	}
@@ -2521,7 +2521,7 @@ func (b *builtinAddDateDatetimeIntSig) evalTime(row []types.Datum) (types.Time, 
 		return types.Time{}, true, errors.Trace(err)
 	}
 
-	interval, isNull, err := b.getIntervalFromInt(b.ctx, b.args, row, unit)
+	interval, isNull, err := b.getIntervalFromInt(b.ctx, b.args, row)
 	if isNull || err != nil {
 		return types.Time{}, true, errors.Trace(err)
 	}
@@ -2637,7 +2637,7 @@ func (b *builtinSubDateStringIntSig) evalTime(row []types.Datum) (types.Time, bo
 		return types.Time{}, true, errors.Trace(err)
 	}
 
-	interval, isNull, err := b.getIntervalFromInt(b.ctx, b.args, row, unit)
+	interval, isNull, err := b.getIntervalFromInt(b.ctx, b.args, row)
 	if isNull || err != nil {
 		return types.Time{}, true, errors.Trace(err)
 	}
@@ -2695,7 +2695,7 @@ func (b *builtinSubDateIntIntSig) evalTime(row []types.Datum) (types.Time, bool,
 		return types.Time{}, true, errors.Trace(err)
 	}
 
-	interval, isNull, err := b.getIntervalFromInt(b.ctx, b.args, row, unit)
+	interval, isNull, err := b.getIntervalFromInt(b.ctx, b.args, row)
 	if isNull || err != nil {
 		return types.Time{}, true, errors.Trace(err)
 	}
@@ -2753,7 +2753,7 @@ func (b *builtinSubDateDatetimeIntSig) evalTime(row []types.Datum) (types.Time, 
 		return types.Time{}, true, errors.Trace(err)
 	}
 
-	interval, isNull, err := b.getIntervalFromInt(b.ctx, b.args, row, unit)
+	interval, isNull, err := b.getIntervalFromInt(b.ctx, b.args, row)
 	if isNull || err != nil {
 		return types.Time{}, true, errors.Trace(err)
 	}
@@ -4348,12 +4348,12 @@ func (b *builtinTimeFormatSig) evalString(row []types.Datum) (string, bool, erro
 	if err != nil || isNull {
 		return "", isNull, errors.Trace(err)
 	}
-	res, err := b.formatTime(dur, formatMask, b.ctx)
+	res, err := b.formatTime(dur, formatMask)
 	return res, isNull, errors.Trace(err)
 }
 
 // See https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_time-format
-func (b *builtinTimeFormatSig) formatTime(t types.Duration, formatMask string, ctx context.Context) (res string, err error) {
+func (b *builtinTimeFormatSig) formatTime(t types.Duration, formatMask string) (res string, err error) {
 	t2 := types.Time{
 		Time: types.FromDate(0, 0, 0, t.Hour(), t.Minute(), t.Second(), t.MicroSecond()),
 		Type: mysql.TypeDate, Fsp: 0}

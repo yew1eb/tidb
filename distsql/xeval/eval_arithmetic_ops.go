@@ -61,7 +61,7 @@ func ComputeArithmetic(sc *variable.StatementContext, op tipb.ExprType, left typ
 	case tipb.ExprType_IntDiv:
 		return types.ComputeIntDiv(sc, a, b)
 	case tipb.ExprType_Mod:
-		return types.ComputeMod(sc, a, b)
+		return types.ComputeMod(a, b)
 	default:
 		return result, errors.Errorf("Unknown binop type: %v", op)
 	}
