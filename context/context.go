@@ -66,6 +66,9 @@ type Context interface {
 
 	// GetStore returns the store of session.
 	GetStore() kv.Storage
+
+	// Close relaeses the context.
+	Close()
 }
 
 type basicCtxType int
@@ -87,3 +90,6 @@ const (
 	// Initing is the key for indicating if the server is running bootstrap or upgrad job.
 	Initing basicCtxType = 2
 )
+
+// Creator is a function to create new context.
+type Creator func() (Context, error)

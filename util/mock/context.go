@@ -166,6 +166,10 @@ func (c *Context) GoCtx() goctx.Context {
 	return c.ctx
 }
 
+// Close release the Context.
+func (c *Context) Close() {
+}
+
 // NewContext creates a new mocked context.Context.
 func NewContext() *Context {
 	ctx, cancel := goctx.WithCancel(goctx.Background())

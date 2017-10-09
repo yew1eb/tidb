@@ -76,7 +76,6 @@ type Session interface {
 	SetTLSState(*tls.ConnectionState)
 	SetCollation(coID int) error
 	SetSessionManager(util.SessionManager)
-	Close()
 	Auth(user *auth.UserIdentity, auth []byte, salt []byte) bool
 	// Cancel the execution of current transaction.
 	Cancel()

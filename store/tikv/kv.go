@@ -26,7 +26,7 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/juju/errors"
 	"github.com/pingcap/pd/pd-client"
-	"github.com/pingcap/tidb"
+	"github.com/pingcap/tidb/context"
 	"github.com/pingcap/tidb/kv"
 	"github.com/pingcap/tidb/store/tikv/mock-tikv"
 	"github.com/pingcap/tidb/store/tikv/oracle"
@@ -137,7 +137,6 @@ type tikvStore struct {
 	kv        SafePointKV
 	safePoint uint64
 	spTime    time.Time
-	spSession tidb.Session  // this is used to obtain safePoint from remote
 	spMutex   sync.RWMutex  // this is used to update safePoint and spTime
 	spMsg     chan struct{} // this is used to nofity when the store is closed
 }
@@ -195,8 +194,8 @@ func (s *tikvStore) EtcdAddrs() []string {
 }
 
 // StartGCWorker starts GC worker, it's called in BootstrapSession, don't call this function more than once.
-func (s *tikvStore) StartGCWorker() error {
-	gcWorker, err := NewGCWorker(s, s.enableGC)
+func (s *tikvStore) StartGCWorker(creator context.Creator) error {
+	gcWorker, err := NewGCWorker(s, creator, s.enableGC)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -210,6 +209,7 @@ type mockOptions struct {
 	clientHijack   func(Client) Client
 	pdClientHijack func(pd.Client) pd.Client
 	path           string
+	oracle         oracle.Oracle
 }
 
 // MockTiKVStoreOption is used to control some behavior of mock tikv.
@@ -252,6 +252,13 @@ func WithPath(path string) MockTiKVStoreOption {
 	}
 }
 
+// WithOracle specifies the mocktikv's oracle.
+func WithOracle(oracle oracle.Oracle) MockTiKVStoreOption {
+	return func(c *mockOptions) {
+		c.oracle = oracle
+	}
+}
+
 // NewMockTikvStore creates a mocked tikv store, the path is the file path to store the data.
 // If path is an empty string, a memory storage will be created.
 func NewMockTikvStore(options ...MockTiKVStoreOption) (kv.Storage, error) {
@@ -291,6 +298,9 @@ func NewMockTikvStore(options ...MockTiKVStoreOption) (kv.Storage, error) {
 	spkv := NewMockSafePointKV()
 	tikvStore, err := newTikvStore(uuid, pdCli, spkv, client, false)
 	tikvStore.mock = true
+	if opt.oracle != nil {
+		tikvStore.oracle = opt.oracle
+	}
 	return tikvStore, errors.Trace(err)
 }
 

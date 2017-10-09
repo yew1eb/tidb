@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package tikv
+package tikv_test
 
 import (
 	"math"
@@ -19,23 +19,31 @@ import (
 
 	. "github.com/pingcap/check"
 	"github.com/pingcap/tidb"
+	"github.com/pingcap/tidb/context"
+	"github.com/pingcap/tidb/store/tikv"
+	"github.com/pingcap/tidb/store/tikv/oracle/oracles"
 )
 
+type tikvStore interface {
+	Close() error
+}
+
 type testGCWorkerSuite struct {
-	store    *tikvStore
-	oracle   *mockOracle
-	gcWorker *GCWorker
+	store    tikvStore
+	oracle   *oracles.MockOracle
+	gcWorker *tikv.GCWorker
 }
 
 var _ = Suite(&testGCWorkerSuite{})
 
 func (s *testGCWorkerSuite) SetUpTest(c *C) {
-	s.store = newTestStore(c)
-	s.oracle = &mockOracle{}
-	s.store.oracle = s.oracle
-	_, err := tidb.BootstrapSession(s.store)
+	s.oracle = &oracles.MockOracle{}
+	store, _ := tikv.NewMockTikvStore(tikv.WithOracle(s.oracle))
+	s.store = store.(tikvStore)
+	_, err := tidb.BootstrapSession(store)
 	c.Assert(err, IsNil)
-	gcWorker, err := NewGCWorker(s.store, true)
+	creator := func() (context.Context, error) { return tidb.CreateSession(store) }
+	gcWorker, err := tikv.NewGCWorker(store, creator, true)
 	c.Assert(err, IsNil)
 	s.gcWorker = gcWorker
 }

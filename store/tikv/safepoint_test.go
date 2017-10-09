@@ -11,35 +11,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package tikv
+package tikv_test
 
 import (
+	"context"
 	"fmt"
 	"time"
+
+	"github.com/pingcap/tidb/store/tikv/oracle/oracles"
 
 	"github.com/juju/errors"
 	. "github.com/pingcap/check"
 	"github.com/pingcap/tidb"
 	"github.com/pingcap/tidb/kv"
+	"github.com/pingcap/tidb/store/tikv"
 	"github.com/pingcap/tidb/terror"
 )
 
 type testSafePointSuite struct {
-	store    *tikvStore
-	oracle   *mockOracle
-	gcWorker *GCWorker
+	store    tikvStore
+	oracle   *oracles.MockOracle
+	gcWorker *tikv.GCWorker
 	prefix   string
 }
 
 var _ = Suite(&testSafePointSuite{})
 
 func (s *testSafePointSuite) SetUpSuite(c *C) {
-	s.store = newTestStore(c)
-	s.oracle = &mockOracle{}
+	s.oracle = &oracles.MockOracle{}
+	store, _ := tikv.NewMockTikvStore(tikv.WithOracle(s.oracle))
+	s.store = store.(tikvStore)
 	s.store.oracle = s.oracle
-	_, err := tidb.BootstrapSession(s.store)
+	_, err := tidb.BootstrapSession(store)
 	c.Assert(err, IsNil)
-	gcWorker, err := NewGCWorker(s.store, false)
+	creator := func() (context.Context, error) { return tidb.CreateSession(store) }
+	gcWorker, err := tikv.NewGCWorker(store, creator, false)
 	c.Assert(err, IsNil)
 	s.gcWorker = gcWorker
 	s.prefix = fmt.Sprintf("seek_%d", time.Now().Unix())

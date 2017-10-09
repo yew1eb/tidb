@@ -25,7 +25,7 @@ import (
 	"github.com/pingcap/pd/pd-client"
 	"github.com/pingcap/tidb"
 	"github.com/pingcap/tidb/kv"
-	"github.com/pingcap/tidb/store/tikv/oracle"
+	"github.com/pingcap/tidb/store/tikv/oracle/oracles"
 	"github.com/pingcap/tidb/store/tikv/tikvrpc"
 	goctx "golang.org/x/net/context"
 )
@@ -56,7 +56,7 @@ func (s *testStoreSuite) TestParsePath(c *C) {
 }
 
 func (s *testStoreSuite) TestOracle(c *C) {
-	o := &mockOracle{}
+	o := &oracles.MockOracle{}
 	s.store.oracle = o
 
 	ctx := goctx.Background()
@@ -70,11 +70,11 @@ func (s *testStoreSuite) TestOracle(c *C) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	o.disable()
+	o.Disable()
 	go func() {
 		defer wg.Done()
 		time.Sleep(time.Millisecond * 100)
-		o.enable()
+		o.Enable()
 	}()
 
 	go func() {
@@ -154,81 +154,6 @@ func (s *testStoreSuite) TestBusyServerCop(c *C) {
 	wg.Wait()
 }
 
-var errStopped = errors.New("stopped")
-
-type mockOracle struct {
-	sync.RWMutex
-	stop   bool
-	offset time.Duration
-	lastTS uint64
-}
-
-func (o *mockOracle) enable() {
-	o.Lock()
-	defer o.Unlock()
-	o.stop = false
-}
-
-func (o *mockOracle) disable() {
-	o.Lock()
-	defer o.Unlock()
-	o.stop = true
-}
-
-func (o *mockOracle) setOffset(offset time.Duration) {
-	o.Lock()
-	defer o.Unlock()
-
-	o.offset = offset
-}
-
-func (o *mockOracle) addOffset(d time.Duration) {
-	o.Lock()
-	defer o.Unlock()
-
-	o.offset += d
-}
-
-func (o *mockOracle) GetTimestamp(goctx.Context) (uint64, error) {
-	o.Lock()
-	defer o.Unlock()
-
-	if o.stop {
-		return 0, errors.Trace(errStopped)
-	}
-	physical := oracle.GetPhysical(time.Now().Add(o.offset))
-	ts := oracle.ComposeTS(physical, 0)
-	if oracle.ExtractPhysical(o.lastTS) == physical {
-		ts = o.lastTS + 1
-	}
-	o.lastTS = ts
-	return ts, nil
-}
-
-type mockOracleFuture struct {
-	o   *mockOracle
-	ctx goctx.Context
-}
-
-func (m *mockOracleFuture) Wait() (uint64, error) {
-	return m.o.GetTimestamp(m.ctx)
-}
-
-func (o *mockOracle) GetTimestampAsync(ctx goctx.Context) oracle.Future {
-	return &mockOracleFuture{o, ctx}
-}
-
-func (o *mockOracle) IsExpired(lockTimestamp uint64, TTL uint64) bool {
-	o.RLock()
-	defer o.RUnlock()
-
-	return oracle.GetPhysical(time.Now().Add(o.offset)) >= oracle.ExtractPhysical(lockTimestamp)+int64(TTL)
-}
-
-func (o *mockOracle) Close() {
-
-}
-
 type busyClient struct {
 	client Client
 	mu     struct {
@@ -263,6 +188,8 @@ func (c *busyClient) SendReq(ctx goctx.Context, addr string, req *tikvrpc.Reques
 	}
 	return c.client.SendReq(ctx, addr, req)
 }
+
+var errStopped = errors.New("stopped")
 
 type mockPDClient struct {
 	sync.RWMutex
