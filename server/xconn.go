@@ -71,7 +71,7 @@ func (xcc *mysqlXClientConn) Run() {
 		log.Infof("[%d] connection exit.", xcc.connectionID)
 	}()
 
-	log.Infof("[%d] establish connection successfully.")
+	log.Infof("[%d] establish connection successfully.", xcc.connectionID)
 	for xcc.state != clientClosed {
 		tp, payload, err := xcc.pkt.ReadPacket()
 		if err != nil {

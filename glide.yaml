@@ -199,4 +199,4 @@ import:
 - package: github.com/spaolacci/murmur3
   version: v1.0
 - package: github.com/jackysp/mysqlsh
-  version: 21a22acb9d696dfbae689e504a8bdefff366e0f3
+  version: 00f21173caec5b5bc2641b4bcb5fca3aacb5993b

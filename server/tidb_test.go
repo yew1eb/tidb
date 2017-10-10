@@ -61,7 +61,7 @@ func (ts *TidbTestSuite) SetUpSuite(c *C) {
 		},
 		XProtocol: config.XProtocol{
 			XServer: true,
-			XPort:   14001,
+			XPort:   14002,
 		},
 	}
 
@@ -432,13 +432,158 @@ func (ts *TidbTestSuite) TestShowCreateTableFlen(c *C) {
 }
 
 func (ts *TidbTestSuite) TestOnXServer(c *C) {
-	dsn := "root@tcp(localhost:14001)/test?xprotocol=1"
+	dsn := "root@tcp(localhost:14002)/test?xprotocol=1"
 	db, err := sql.Open("mysql/xprotocol", dsn)
 	c.Assert(err, IsNil, Commentf("Error connecting"))
 	_, err = db.Query("SELECT DATABASE()")
 	c.Assert(err, IsNil, Commentf("Error: %s", err))
 	_, err = db.Query("SELECT ABC")
 	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	// admin bogus
+	args := []interface{}{
+		"mysqlx",
+	}
+	_, err = db.Query("whatever", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	args = []interface{}{
+		"bogus",
+	}
+	_, err = db.Query("whatever", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	// admin create collection
+	args = []interface{}{
+		"mysqlx",
+		"test",
+		"books",
+	}
+	_, err = db.Query("create_collection", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+	_, err = db.Query("drop_collection", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	args = []interface{}{
+		"mysqlx",
+		"",
+		"",
+	}
+	_, err = db.Query("create_collection", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	args = []interface{}{
+		"mysqlx",
+		"test",
+		"",
+	}
+	_, err = db.Query("create_collection", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	// ensure collection
+	args = []interface{}{
+		"mysqlx",
+		"test",
+		"books",
+	}
+	_, err = db.Query("create_collection", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+	_, err = db.Query("ensure_collection", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	// kill client
+	args = []interface{}{
+		"mysqlx",
+	}
+	_, err = db.Query("list_clients", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	args = []interface{}{
+		"mysqlx",
+		2,
+	}
+	_, err = db.Query("kill_client", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	args = []interface{}{
+		"mysqlx",
+	}
+	_, err = db.Query("list_clients", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	args = []interface{}{
+		"mysqlx",
+		1,
+	}
+	_, err = db.Query("kill_client", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	args = []interface{}{
+		"mysqlx",
+	}
+	_, err = db.Query("list_clients", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	args = []interface{}{
+		"mysqlx",
+		3,
+	}
+	_, err = db.Query("kill_client", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	// list objects
+	args = []interface{}{
+		"mysqlx",
+		"test",
+	}
+	_, err = db.Query("list_objects", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	args = []interface{}{
+		"mysqlx",
+		"invalid",
+	}
+	_, err = db.Query("list_objects", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	args = []interface{}{
+		"mysqlx",
+		"test",
+		"myt%",
+	}
+	_, err = db.Query("list_objects", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	args = []interface{}{
+		"mysqlx",
+		"test",
+		"bla%",
+	}
+	_, err = db.Query("list_objects", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	args = []interface{}{
+		"mysqlx",
+	}
+	_, err = db.Query("list_objects", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	args = []interface{}{
+		"mysqlx",
+		"test",
+		"books",
+	}
+	_, err = db.Query("list_objects", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	// ping
+	args = []interface{}{
+		"mysqlx",
+	}
+	_, err = db.Query("ping", args...)
+	c.Assert(err, IsNil, Commentf("Error: %s", err))
+
+	// clean up
 	err = db.Close()
 	c.Assert(err, IsNil, Commentf("Error close db: %s", err))
 }

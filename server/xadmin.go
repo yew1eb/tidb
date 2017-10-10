@@ -16,6 +16,7 @@ package server
 import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/juju/errors"
+	"github.com/pingcap/tidb/infoschema"
 	"github.com/pingcap/tidb/terror"
 	"github.com/pingcap/tidb/xprotocol/util"
 	"github.com/pingcap/tipb/go-mysqlx/Datatypes"
@@ -43,6 +44,7 @@ const (
 func (xsql *xSQL) dispatchAdminCmd(msg Mysqlx_Sql.StmtExecute) error {
 	stmt := string(msg.GetStmt())
 	args := msg.GetArgs()
+	log.Infof("MySQL X SQL statement: %s", stmt)
 	switch stmt {
 	case "ping":
 		return xsql.ping(args)
@@ -120,10 +122,9 @@ func (xsql *xSQL) createCollection(args []*Mysqlx_Datatypes.Any) error {
 func (xsql *xSQL) ensureCollection(args []*Mysqlx_Datatypes.Any) error {
 	err := xsql.createCollectionImpl(args)
 	if err != nil {
-		if !terror.ErrorEqual(err, util.ErrTableExists) {
+		if !terror.ErrorEqual(err, infoschema.ErrTableExists) {
 			return errors.Trace(err)
 		}
-		return errors.Trace(err)
 	}
 	schema := string(args[0].GetScalar().GetVString().GetValue())
 	collection := string(args[1].GetScalar().GetVString().GetValue())
