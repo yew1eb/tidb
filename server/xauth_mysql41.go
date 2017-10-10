@@ -59,6 +59,14 @@ func (spa *saslMysql41Auth) handleStart(mechanism *string, data []byte, initialR
 func (spa *saslMysql41Auth) handleContinue(data []byte) *response {
 	if spa.mState == sWaitingResponse {
 		dbname, user, passwd := spa.extractNullTerminatedElement(data)
+		if dbname == nil || user == nil || passwd == nil {
+			return &response{
+				status:  authFailed,
+				data:    xutil.ErXBadMessage.ToSQLError().Message,
+				errCode: xutil.ErXBadMessage.ToSQLError().Code,
+			}
+		}
+
 		xcc := spa.xauth.xcc
 		xcc.dbname = string(dbname)
 		xcc.user = string(user)
@@ -100,5 +108,9 @@ func (spa *saslMysql41Auth) handleContinue(data []byte) *response {
 
 func (spa *saslMysql41Auth) extractNullTerminatedElement(data []byte) ([]byte, []byte, []byte) {
 	slices := bytes.Split(data, []byte{0})
+
+	if len(slices) != 3 {
+		return nil, nil, nil
+	}
 	return slices[0], slices[1], slices[2]
 }
